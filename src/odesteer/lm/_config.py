@@ -15,7 +15,7 @@ _FULL_LLM_NAMES = {
     'Qwen3-8B-Base': 'Qwen/Qwen3-8B-Base', 
     # Falcon
     'Falcon-7B-Base': 'tiiuae/falcon-7b',
-    'Falcon-1B-Base': 'tiiuae/Falcon-1B-Base',
+    'Falcon-1B-Base': 'tiiuae/Falcon3-1B-Base',
     # Phi3
     'Phi3-7B-Instruct': 'microsoft/Phi-3-small-8k-instruct',
     # Pythia
