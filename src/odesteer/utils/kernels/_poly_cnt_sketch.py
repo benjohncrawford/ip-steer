@@ -336,7 +336,7 @@ class PolyCntSketch(nn.Module):
         out = (gathered * bitsF.unsqueeze(0)).sum(dim=1)            # [B, Forig]
         return out
     
-    def compute_hessian(self: PolyCntSketch) -> torch.Tensor:
+    def compute_hessian(self):
         self._ensure_fitted(self.indexHash_)
         # Dummy input; since it's constant, the evaluation point doesn't matter
         x_dummy = torch.zeros(self.n_features_, device=self.indexHash_.device)
