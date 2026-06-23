@@ -1,5 +1,6 @@
 import torch
 from torch import nn, Tensor
+from torch.func import jacrev
 
 class PolyCntSketch(nn.Module):
     def __init__(
@@ -16,6 +17,7 @@ class PolyCntSketch(nn.Module):
         self.n_components = int(n_components)
         self.gamma = float(gamma)
         self.coef0 = float(coef0)
+        self.H = None
 
     @staticmethod
     def _ensure_fitted(buf):
@@ -50,6 +52,7 @@ class PolyCntSketch(nn.Module):
         
         self.register_buffer("indexHash_", indexHash)
         self.register_buffer("bitHash_", bitHash)
+        self.H = self.compute_hessian()
         return self
 
     def forward(self, X: Tensor) -> Tensor:
@@ -332,6 +335,16 @@ class PolyCntSketch(nn.Module):
         gathered = C.gather(2, idxF.unsqueeze(0).expand(B, -1, -1))  # [B, D, Forig]
         out = (gathered * bitsF.unsqueeze(0)).sum(dim=1)            # [B, Forig]
         return out
+    
+    def compute_hessian(self: PolyCntSketch) -> torch.Tensor:
+        self._ensure_fitted(self.indexHash_)
+        # Dummy input; since it's constant, the evaluation point doesn't matter
+        x_dummy = torch.zeros(self.n_features_, device=self.indexHash_.device)
+        
+        # jacrev(sketch.grad) computes the Jacobian of the Jacobian (i.e. the Hessian)
+        hessian_func = jacrev(self._grad_single)
+        
+        return hessian_func(x_dummy) # Shape: [n_components, n_features, n_features]
 
 
 

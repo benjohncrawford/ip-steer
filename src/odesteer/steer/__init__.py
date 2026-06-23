@@ -12,7 +12,8 @@ from ._lin_act import LinAcT
 
 # ODESteer
 from ._ode_steer import BaseODESteer, ODESteer, RFFODESteer
-from ._step_ode_steer import BaseStepODESteer, StepODESteer, RFFStepODESteer    
+from ._step_ode_steer import BaseStepODESteer, StepODESteer, RFFStepODESteer  
+from ._interior_point_steer import BaseIPSteer, IPSteer  
 
 __all__ = [
     'Steer', 'VecSteer', 
@@ -20,7 +21,7 @@ __all__ = [
     'RepE', 'CAA', 'ITI', 'MiMiC', 'LinAcT',
     # ODESteer
     'BaseODESteer', 'ODESteer', 'RFFODESteer',
-    'BaseStepODESteer', 'StepODESteer', 'RFFStepODESteer',
+    'BaseStepODESteer', 'StepODESteer', 'RFFStepODESteer', 'BaseIPSteer', 'IPSteer'
 ]
 
 def get_steer_model(name: str, *args, **kwargs) -> type[Steer]:
