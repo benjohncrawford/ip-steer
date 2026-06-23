@@ -1,4 +1,4 @@
-type: StepODESteer
+type: IPSteer
 kwargs:
   n_components: 8000
   degree: 2 
