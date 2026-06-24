@@ -52,7 +52,7 @@ class PolyCntSketch(nn.Module):
         
         self.register_buffer("indexHash_", indexHash)
         self.register_buffer("bitHash_", bitHash)
-        self.H = self.compute_hessian()
+        # self.H = self.compute_hessian()
         return self
 
     def forward(self, X: Tensor) -> Tensor:

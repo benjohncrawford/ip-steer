@@ -69,8 +69,9 @@ class BaseIPSteer(Steer):
         X = self.X_feas
         eta = eta_0
         prev_X = X_0
+        step_size = 1e-3
         while error >= error_eps and k <= max_iter:
-            X = X - torch.inverse(self.obj_hess(X, eta))@self.obj_grad(X, eta, X_0)
+            X = X - step_size*self.obj_grad(X, eta, X_0)
             error = torch.norm(prev_X - X)
             prev_X = X
             eta = eta_0 * self.delta
