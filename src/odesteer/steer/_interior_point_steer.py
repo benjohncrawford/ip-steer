@@ -27,7 +27,7 @@ class BaseIPSteer(Steer):
         self.clf = self._init_clf(**kwargs)
 
         # Initial feasible point - gets set during fit
-        self.X_feas = 0
+        self.X_feas = torch.zeros(8000)
 
         # Initial eta for the interior point method should be very small 
         self.eta_0 = eta_0
