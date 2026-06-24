@@ -43,6 +43,11 @@ class BaseIPSteer(Steer):
         self.X_feas = self.find_init_feas()
         return self
     
+    def vector_field(self, X: Tensor) -> Tensor:
+        self.clf.to(X.device)
+        raw_grad = self.clf.grad(X)
+        return raw_grad / (raw_grad.norm(dim = -1, keepdim = True) + 1e-10)
+    
     @torch.no_grad()
     def steer(self, X: Tensor, T: float = 1.0) -> Tensor:
         if T == 0.: 
