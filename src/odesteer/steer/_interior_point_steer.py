@@ -73,7 +73,7 @@ class BaseIPSteer(Steer):
 
     def find_init_feas(self) -> Tensor:
         X_0 = torch.zeros(8000)
-        return self.solve(X_0, 1e-6)
+        return self.solve(X_0, 0)
 
     @abstractmethod
     def _init_clf(self, **kwargs) -> KernelClassifier:
