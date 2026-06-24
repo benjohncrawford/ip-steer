@@ -12,6 +12,7 @@ from torchdiffeq import odeint
 from ._base_steer import Steer
 from ..utils.kernels import KernelClassifier, RFFClassifier
 from ..utils.kernels import PolyClassifier
+from ..utils.ihvp import inverse_hvp
 
 
 class BaseIPSteer(Steer):
@@ -48,30 +49,22 @@ class BaseIPSteer(Steer):
             return X
         return self.solve(X, self.eta_0)
     
-    def vector_field(self, X: Tensor) -> Tensor:
-        self.clf.to(X.device)
-        raw_grad = self.clf.grad(X)
-        return raw_grad / (raw_grad.norm(dim = -1, keepdim = True) + 1e-10)
-    
-    def obj_grad(self, X: Tensor, eta, X_0: Tensor) -> Tensor:
-        self.clf.to(X.device)
-        return eta*(X - X_0) + (1/(self.clf.forward(X)-self.eps))*self.clf.grad(X)
+    def obj(self, X, X_0, eta):
+        diff = X-X_0
+        return eta*torch.sum(torch.square(diff)) + torch.log(self.clf.forward(X))
 
-    def obj_hess(self, X: Tensor, eta) -> Tensor:
-        self.clf.to(X.device)
-        return 2*eta + (1/(self.clf.forward(X)-self.eps)**2)*self.clf.grad(X)@self.clf.grad(X).T - (1/(self.clf.forward(X)-self.eps))*self.clf.kernel.H
-
-    def solve(self, X_0: Tensor, eta_0) -> Tensor:
-        k = 0
+    def solve(self, X_0: Tensor, eta_0 = 1e-6, tol = 1e-6, max_iter = 10) -> Tensor:
         error = 10e6
-        error_eps = 1e-6
-        max_iter = 10
         X = self.X_feas
         eta = eta_0
         prev_X = X_0
-        step_size = 1e-3
-        while error >= error_eps and k <= max_iter:
-            X = X - step_size*self.obj_grad(X, eta, X_0)
+        
+        k = 0
+        while error >= tol and k <= max_iter:
+            obj_wrapper = lambda x: self.obj(x, X_0, eta)
+            
+            y = obj_wrapper(X)
+            X = X - inverse_hvp(obj_wrapper, X, torch.autograd.grad(y, X)[0])
             error = torch.norm(prev_X - X)
             prev_X = X
             eta = eta_0 * self.delta
@@ -79,7 +72,7 @@ class BaseIPSteer(Steer):
         return X
 
     def find_init_feas(self) -> Tensor:
-        X_0 = torch.zeros()
+        X_0 = torch.zeros(8000)
         return self.solve(X_0, 1e-6)
 
     @abstractmethod
