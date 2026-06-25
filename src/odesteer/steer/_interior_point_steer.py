@@ -27,8 +27,8 @@ class BaseIPSteer(Steer):
         self.clf = self._init_clf(**kwargs)
 
         # Initial feasible point - gets set during fit
-        self.X_feas = torch.zeros(2048, requires_grad = True)
-
+        self.X_feas = None
+        
         # Initial eta for the interior point method should be very small 
         self.eta_0 = eta_0
 
@@ -40,7 +40,8 @@ class BaseIPSteer(Steer):
                 
     def fit(self, pos_X: Tensor, neg_X_or_labels: Tensor) -> 'BaseIPSteer':
         self.clf.fit(pos_X, neg_X_or_labels)
-        self.X_feas = self.find_init_feas()
+        self.X_feas = torch.zeros(2048, requires_grad = True, device = pos_X.device)
+        self.X_feas = self.find_init_feas(target_device = pos_X.device)
         return self
     
     def vector_field(self, X: Tensor) -> Tensor:
@@ -78,8 +79,8 @@ class BaseIPSteer(Steer):
             k += 1
         return X.detach()
 
-    def find_init_feas(self) -> Tensor:
-        X_0 = torch.zeros(2048, requires_grad = True)
+    def find_init_feas(self, target_device) -> Tensor:
+        X_0 = torch.zeros(2048, requires_grad = True, device=target_device)
         return self.solve(X_0, 0)
 
     @abstractmethod
