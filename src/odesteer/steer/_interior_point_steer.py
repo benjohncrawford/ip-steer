@@ -66,17 +66,18 @@ class BaseIPSteer(Steer):
         prev_X = X_0
         
         k = 0
-        while error >= tol and k <= max_iter:
-            X = X.detach().requires_grad_(True)
-            obj_wrapper = lambda x: self.obj(x, X_0, eta)
-            
-            y = obj_wrapper(X)
-            grad_y = torch.autograd.grad(y, X, create_graph=True)[0]
-            X = X - inverse_hvp(obj_wrapper, X, grad_y)
-            error = torch.norm(prev_X.detach() - X.detach())
-            prev_X = X
-            eta = eta * self.delta
-            k += 1
+        with torch.enable_grad():
+            while error >= tol and k <= max_iter:
+                X = X.detach().requires_grad_(True)
+                obj_wrapper = lambda x: self.obj(x, X_0, eta)
+                
+                y = obj_wrapper(X)
+                grad_y = torch.autograd.grad(y, X, create_graph=True)[0]
+                X = X - inverse_hvp(obj_wrapper, X, grad_y)
+                error = torch.norm(prev_X.detach() - X.detach())
+                prev_X = X
+                eta = eta * self.delta
+                k += 1
         return X.detach()
 
     def find_init_feas(self, target_device) -> Tensor:
