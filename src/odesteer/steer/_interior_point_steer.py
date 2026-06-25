@@ -59,9 +59,8 @@ class BaseIPSteer(Steer):
         return eta*torch.sum(torch.square(diff)) + torch.log(self.clf.forward(X))
 
     def solve(self, X_0: Tensor, eta_0 = 1e-6, tol = 1e-6, max_iter = 10) -> Tensor:
-        self.X_feas.to(X_0.device)
         error = 10e6
-        X = self.X_feas.clone()
+        X = self.X_feas.to(X_0.device).clone()
         eta = eta_0
         prev_X = X_0
         
