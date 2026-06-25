@@ -27,7 +27,7 @@ class BaseIPSteer(Steer):
         self.clf = self._init_clf(**kwargs)
 
         # Initial feasible point - gets set during fit
-        self.X_feas = torch.zeros(2048)
+        self.X_feas = torch.zeros(2048, requires_grad = True)
 
         # Initial eta for the interior point method should be very small 
         self.eta_0 = eta_0
@@ -48,7 +48,6 @@ class BaseIPSteer(Steer):
         raw_grad = self.clf.grad(X)
         return raw_grad / (raw_grad.norm(dim = -1, keepdim = True) + 1e-10)
     
-    @torch.no_grad()
     def steer(self, X: Tensor, T: float = 1.0) -> Tensor:
         if T == 0.: 
             return X
@@ -60,24 +59,26 @@ class BaseIPSteer(Steer):
 
     def solve(self, X_0: Tensor, eta_0 = 1e-6, tol = 1e-6, max_iter = 10) -> Tensor:
         error = 10e6
-        X = self.X_feas
+        X = self.X_feas.clone()
         eta = eta_0
         prev_X = X_0
         
         k = 0
         while error >= tol and k <= max_iter:
+            X = X.detach().requires_grad_(True)
             obj_wrapper = lambda x: self.obj(x, X_0, eta)
             
             y = obj_wrapper(X)
-            X = X - inverse_hvp(obj_wrapper, X, torch.autograd.grad(y, X)[0])
-            error = torch.norm(prev_X - X)
+            grad_y = torch.autograd.grad(y, X, create_graph=True)[0]
+            X = X - inverse_hvp(obj_wrapper, X, grad_y)
+            error = torch.norm(prev_X.detach() - X.detach())
             prev_X = X
-            eta = eta_0 * self.delta
-            k+=1
-        return X
+            eta = eta * self.delta
+            k += 1
+        return X.detach()
 
     def find_init_feas(self) -> Tensor:
-        X_0 = torch.zeros(2048)
+        X_0 = torch.zeros(2048, requires_grad = True)
         return self.solve(X_0, 0)
 
     @abstractmethod
