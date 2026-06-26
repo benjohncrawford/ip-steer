@@ -56,7 +56,7 @@ class BaseIPSteer(Steer):
     
     def obj(self, X, X_0, eta):
         diff = X-X_0
-        return 0.5*eta*torch.sum(torch.square(diff)) - torch.log(0.5 + self.eps - self.clf.forward(X))
+        return 0.5*eta*torch.sum(torch.square(diff)) - torch.log(self.clf.forward(X) - (0.5 + self.eps))
 
     def solve(self, X_0: Tensor, eta_0 = 1e-3, tol = 1e-6, max_iter = 100) -> Tensor:
         self.clf.to(X_0.device)
