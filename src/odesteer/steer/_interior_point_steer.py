@@ -56,7 +56,7 @@ class BaseIPSteer(Steer):
     
     def obj(self, X, X_0, eta):
         diff = X-X_0
-        return eta*torch.sum(torch.square(diff)) + torch.log(self.clf.forward(X))
+        return 0.5*eta*torch.sum(torch.square(diff)) + torch.log(self.clf.forward(X))
 
     def solve(self, X_0: Tensor, eta_0 = 1e-6, tol = 1e-6, max_iter = 10) -> Tensor:
         self.clf.to(X_0.device)
@@ -78,11 +78,14 @@ class BaseIPSteer(Steer):
                 prev_X = X
                 eta = eta * self.delta
                 k += 1
+                print("-------------------------------")
+                print(f"Iteration {k}:\nerror: {error}\nX:{X}\neta:{eta}\nobj: {y}")
+                print("-------------------------------")
         return X.detach()
 
     def find_init_feas(self, target_device) -> Tensor:
-        X_0 = torch.zeros(2048, requires_grad = True, device=target_device)
-        return self.solve(X_0, 0)
+        X_0 = torch.ones(2048, requires_grad = True, device=target_device)
+        return self.solve(X_0, eta_0 = 0, max_iter=100)
 
     @abstractmethod
     def _init_clf(self, **kwargs) -> KernelClassifier:
