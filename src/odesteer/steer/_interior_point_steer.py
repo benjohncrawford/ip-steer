@@ -20,7 +20,7 @@ class BaseIPSteer(Steer):
         self, 
         eta_0 = 10e-6,
         delta = 2,
-        eps = 1e-6,
+        eps = 0.15,
         **kwargs
     ):
         super().__init__()
@@ -40,7 +40,7 @@ class BaseIPSteer(Steer):
                 
     def fit(self, pos_X: Tensor, neg_X_or_labels: Tensor) -> 'BaseIPSteer':
         self.clf.fit(pos_X, neg_X_or_labels)
-        self.X_feas = torch.zeros(2048, requires_grad = True, device = pos_X.device)
+        self.X_feas = pos_X[0]
         self.X_feas = self.find_init_feas(target_device = pos_X.device)
         return self
     
@@ -56,7 +56,7 @@ class BaseIPSteer(Steer):
     
     def obj(self, X, X_0, eta):
         diff = X-X_0
-        return 0.5*eta*torch.sum(torch.square(diff)) - torch.log(self.clf.forward(X) - (0.5 + self.eps))
+        return 0.5*eta*torch.sum(torch.square(diff)) - torch.log(self.clf.forward(X) - (0.5 + self.eps) + 1e-8)
 
     def solve(self, X_0: Tensor, eta_0 = 1e-3, tol = 1e-6, max_iter = 100) -> Tensor:
         self.clf.to(X_0.device)
@@ -69,6 +69,7 @@ class BaseIPSteer(Steer):
         with torch.enable_grad():
             inner_k = 0
             while outer_k <= 10:
+                error = 10e6
                 while error >= tol and inner_k <= max_iter:
                     X = X.detach().requires_grad_(True)
                     obj_wrapper = lambda x: self.obj(x, X_0, eta)
@@ -88,10 +89,11 @@ class BaseIPSteer(Steer):
         return X.detach()
 
     def check_feasible(self, X):
+        self.clf.to(X.device)
         return self.clf.forward(X).item() >= (0.5 + self.eps)
 
     def find_init_feas(self, target_device) -> Tensor:
-        X_0 = torch.ones(2048, requires_grad = True, device=target_device)
+        X_0 = torch.zeros(2048, requires_grad = True, device=target_device)
         return self.solve(X_0, eta_0 = 0, max_iter=1000)
 
     @abstractmethod
