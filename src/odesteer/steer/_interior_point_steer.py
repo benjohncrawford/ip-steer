@@ -50,7 +50,6 @@ class BaseIPSteer(Steer):
         return raw_grad / (raw_grad.norm(dim = -1, keepdim = True) + 1e-10)
     
     def steer(self, X: Tensor, T: float = 1.0) -> Tensor:
-        print(X.shape)
         if T == 0. or self.check_feasible(X).all(): 
             return X
         return self.solve(X)
@@ -61,7 +60,6 @@ class BaseIPSteer(Steer):
 
     def solve(self, X_0: Tensor, tol = 1e-6, max_iter = 100) -> Tensor:
         self.clf.to(X_0.device)
-        print(X_0.shape)
         error = 10e6
         X = self.X_feas.to(X_0.device).unsqueeze(0).expand_as(X_0).clone()
         eta = self.eta_0
