@@ -82,12 +82,12 @@ class BaseIPSteer(Steer):
                     y = y.sum()
                     grad_y = torch.autograd.grad(y, X, create_graph=True)[0]
                     alpha = 1.0  # Start with the full Newton step
-                    
+                    step = inverse_hvp(obj_wrapper, X, grad_y)
                     with torch.no_grad():
                         for _ in range(max_line_search_iters):
-                            X_proposed = X - alpha*inverse_hvp(obj_wrapper, X, grad_y)
+                            X_proposed = X - alpha*step
 
-                            if self.check_feasible(X).all():
+                            if self.check_feasible(X_proposed).all():
                                 X.copy_(X_proposed)
                                 break
                             else:
