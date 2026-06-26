@@ -19,7 +19,7 @@ class BaseIPSteer(Steer):
     def __init__(
         self, 
         eta_0 = 10e-6,
-        delta = 1.5,
+        delta = 15,
         eps = 1e-6,
         **kwargs
     ):
@@ -56,9 +56,9 @@ class BaseIPSteer(Steer):
     
     def obj(self, X, X_0, eta):
         diff = X-X_0
-        return 0.5*eta*torch.sum(torch.square(diff)) + torch.log(self.clf.forward(X))
+        return 0.5*eta*torch.sum(torch.square(diff)) - torch.log(self.clf.forward(X))
 
-    def solve(self, X_0: Tensor, eta_0 = 1e-6, tol = 1e-6, max_iter = 10) -> Tensor:
+    def solve(self, X_0: Tensor, eta_0 = 1e-3, tol = 1e-6, max_iter = 10) -> Tensor:
         self.clf.to(X_0.device)
         error = 10e6
         X = self.X_feas.to(X_0.device).clone()
@@ -79,7 +79,7 @@ class BaseIPSteer(Steer):
                 eta = eta * self.delta
                 k += 1
                 print("-------------------------------")
-                print(f"Iteration {k}:\nerror: {error}\nX:{X}\neta:{eta}\nobj: {y}")
+                print(f"Iteration {k}:\nerror: {error}\nX:{X}\neta:{eta}\nobj: {y}\nh(a): {self.clf.forward(X)}")
                 print("-------------------------------")
         return X.detach()
 
