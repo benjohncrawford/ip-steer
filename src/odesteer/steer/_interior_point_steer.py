@@ -41,7 +41,7 @@ class BaseIPSteer(Steer):
     def fit(self, pos_X: Tensor, neg_X_or_labels: Tensor) -> 'BaseIPSteer':
         self.clf.fit(pos_X, neg_X_or_labels)
         self.X_feas = pos_X[0]
-        self.X_feas = self.find_init_feas(target_device = pos_X.device)
+        # self.X_feas = self.find_init_feas(target_device = pos_X.device)
         return self
     
     def vector_field(self, X: Tensor) -> Tensor:
@@ -52,17 +52,19 @@ class BaseIPSteer(Steer):
     def steer(self, X: Tensor, T: float = 1.0) -> Tensor:
         if T == 0. or self.check_feasible(X): 
             return X
-        return self.solve(X, self.eta_0)
+        print(X.shape)
+        return torch.vmap(self.solve)(X)
     
     def obj(self, X, X_0, eta):
         diff = X-X_0
         return 0.5*eta*torch.sum(torch.square(diff)) - torch.log(self.clf.forward(X) - (0.5 + self.eps) + 1e-8)
 
-    def solve(self, X_0: Tensor, eta_0 = 1e-3, tol = 1e-6, max_iter = 100) -> Tensor:
+    def solve(self, X_0: Tensor, tol = 1e-6, max_iter = 100) -> Tensor:
         self.clf.to(X_0.device)
+        print(X_0.shape)
         error = 10e6
         X = self.X_feas.to(X_0.device).clone()
-        eta = eta_0
+        eta = self.eta_0
         prev_X = X_0
         
         outer_k = 0
@@ -82,7 +84,7 @@ class BaseIPSteer(Steer):
 
                     inner_k += 1
                 print("-------------------------------")
-                print(f"Iteration {outer_k}:\nerror: {error}\nX:{X}\neta:{eta}\nobj: {y}\nh(a): {self.clf.forward(X).item()}\nfeasible: {self.check_feasible(X)}")
+                print(f"Iteration {outer_k}:\nerror: {error}\nX:{X}\neta:{eta}\nobj: {y.item()}\nh(a): {self.clf.forward(X).item()}\nfeasible: {self.check_feasible(X)}")
                 print("-------------------------------")
                 outer_k += 1
                 eta = eta * self.delta
@@ -92,9 +94,9 @@ class BaseIPSteer(Steer):
         self.clf.to(X.device)
         return self.clf.forward(X).item() >= (0.5 + self.eps)
 
-    def find_init_feas(self, target_device) -> Tensor:
-        X_0 = torch.zeros(2048, requires_grad = True, device=target_device)
-        return self.solve(X_0, eta_0 = 0, max_iter=1000)
+    # def find_init_feas(self, target_device) -> Tensor:
+    #     X_0 = torch.zeros(2048, requires_grad = True, device=target_device)
+    #     return self.solve(X_0, eta_0 = 0, max_iter=1000)
 
     @abstractmethod
     def _init_clf(self, **kwargs) -> KernelClassifier:
