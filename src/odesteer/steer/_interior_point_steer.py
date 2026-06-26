@@ -84,7 +84,7 @@ class BaseIPSteer(Steer):
 
                     inner_k += 1
                 print("-------------------------------")
-                print(f"Iteration {outer_k}:\nerror: {error}\nX:{X}\neta:{eta}\nobj: {y.item()}\nh(a): {self.clf.forward(X).item()}\nfeasible: {self.check_feasible(X)}")
+                print(f"Iteration {outer_k}:\nerror: {error}\nX:{X}\neta:{eta}\nobj: {y}\nh(a): {self.clf.forward(X)}\nfeasible: {self.check_feasible(X)}")
                 print("-------------------------------")
                 outer_k += 1
                 eta = eta * self.delta
@@ -92,7 +92,7 @@ class BaseIPSteer(Steer):
 
     def check_feasible(self, X):
         self.clf.to(X.device)
-        return self.clf.forward(X).item() >= (0.5 + self.eps)
+        return self.clf.forward(X) >= (0.5 + self.eps)
 
     # def find_init_feas(self, target_device) -> Tensor:
     #     X_0 = torch.zeros(2048, requires_grad = True, device=target_device)
