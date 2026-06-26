@@ -19,7 +19,7 @@ class BaseIPSteer(Steer):
     def __init__(
         self, 
         eta_0 = 10e-6,
-        delta = 15,
+        delta = 2,
         eps = 1e-6,
         **kwargs
     ):
@@ -56,9 +56,9 @@ class BaseIPSteer(Steer):
     
     def obj(self, X, X_0, eta):
         diff = X-X_0
-        return 0.5*eta*torch.sum(torch.square(diff)) - torch.log(self.clf.forward(X))
+        return 0.5*eta*torch.sum(torch.square(diff)) - torch.log(0.5 + self.eps - self.clf.forward(X))
 
-    def solve(self, X_0: Tensor, eta_0 = 1e-3, tol = 1e-6, max_iter = 10) -> Tensor:
+    def solve(self, X_0: Tensor, eta_0 = 1e-3, tol = 1e-6, max_iter = 100) -> Tensor:
         self.clf.to(X_0.device)
         error = 10e6
         X = self.X_feas.to(X_0.device).clone()
@@ -76,16 +76,19 @@ class BaseIPSteer(Steer):
                 X = X - inverse_hvp(obj_wrapper, X, grad_y)
                 error = torch.norm(prev_X.detach() - X.detach())
                 prev_X = X
+                print("-------------------------------")
+                print(f"Iteration {k}:\nerror: {error}\nX:{X}\neta:{eta}\nobj: {y}\nh(a): {self.clf.forward(X)}\nfeasible: {self.check_feasible(X)}")
+                print("-------------------------------")
                 eta = eta * self.delta
                 k += 1
-                print("-------------------------------")
-                print(f"Iteration {k}:\nerror: {error}\nX:{X}\neta:{eta}\nobj: {y}\nh(a): {self.clf.forward(X)}")
-                print("-------------------------------")
         return X.detach()
+
+    def check_feasible(self, X):
+        return self.clf.predict(X)
 
     def find_init_feas(self, target_device) -> Tensor:
         X_0 = torch.ones(2048, requires_grad = True, device=target_device)
-        return self.solve(X_0, eta_0 = 0, max_iter=100)
+        return self.solve(X_0, eta_0 = 0, max_iter=1000)
 
     @abstractmethod
     def _init_clf(self, **kwargs) -> KernelClassifier:
