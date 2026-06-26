@@ -21,6 +21,7 @@ class BaseIPSteer(Steer):
         eta_0 = 10e-6,
         delta = 2,
         eps = 0.15,
+        alpha = 0.01,
         **kwargs
     ):
         super().__init__()
@@ -37,6 +38,8 @@ class BaseIPSteer(Steer):
 
         # Desired distance/probability into the safety region 
         self.eps = eps
+        
+        self.alpha = alpha
                 
     def fit(self, pos_X: Tensor, neg_X_or_labels: Tensor) -> 'BaseIPSteer':
         self.clf.fit(pos_X, neg_X_or_labels)
@@ -73,11 +76,10 @@ class BaseIPSteer(Steer):
                 while error >= tol and inner_k <= max_iter:
                     X = X.detach().requires_grad_(True)
                     obj_wrapper = lambda x: self.obj(x, X_0, eta).sum()
-                    
                     y = obj_wrapper(X)
                     y = y.sum()
                     grad_y = torch.autograd.grad(y, X, create_graph=True)[0]
-                    X = X - inverse_hvp(obj_wrapper, X, grad_y)
+                    X = X - self.alpha*inverse_hvp(obj_wrapper, X, grad_y)
                     error = torch.norm(prev_X.detach() - X.detach(), dim=-1).max().item()
                     prev_X = X
 
