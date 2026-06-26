@@ -16,24 +16,24 @@ def cg(H_mvp, b, max_iters = 10, tol = 1e-6):
     p = r.clone()
     
     # squared norm of the residual 
-    res_mag_old = torch.dot(r, r)
+    res_mag_old = torch.sum(r * r, dim=-1, keepdim=True)
 
     k = 0
-    while res_mag_old > tol and k < max_iters:
+    while res_mag_old.max() > tol and k < max_iters:
         Hp = H_mvp(p)
         
         # Calculate step size
-        eta = res_mag_old / torch.dot(p, Hp)
+        eta = res_mag_old / (torch.sum(p * Hp, dim=-1, keepdim=True) + 1e-10)
         
         # Update value based on step in search direction
         w = w + eta*p
         
         # Update residual
         r = r - eta*Hp
-        res_mag_new = torch.dot(r, r)
+        res_mag_new = torch.sum(r * r, dim=-1, keepdim=True)
         
         # Update search direction
-        beta = res_mag_new / res_mag_old
+        beta = res_mag_new / (res_mag_old + 1e-10)
         p = r + beta*p
         
         k+=1
@@ -50,7 +50,7 @@ def inverse_hvp(func, w, v):
     def hvp_wrapper(y):
         # torch.autograd.functional.hvp returns a tuple: (loss, hvp)
         _, hvp_out = torch.autograd.functional.hvp(func, w, v=y)
-        return hvp_out
+        return hvp_out + 10e-4 * v
     
     # Solve H * y = v
     return cg(hvp_wrapper, v)
