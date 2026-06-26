@@ -69,6 +69,8 @@ class BaseIPSteer(Steer):
         prev_X = X_0
         
         outer_k = 0
+        max_line_search_iters = 15
+        tau = 0.5    # How much to shrink the step size on failure (e.g., cut in half)
         with torch.enable_grad():
             inner_k = 0
             while outer_k <= 10:
@@ -79,7 +81,19 @@ class BaseIPSteer(Steer):
                     y = obj_wrapper(X)
                     y = y.sum()
                     grad_y = torch.autograd.grad(y, X, create_graph=True)[0]
-                    X = X - self.alpha*inverse_hvp(obj_wrapper, X, grad_y)
+                    alpha = 1.0  # Start with the full Newton step
+                    
+                    with torch.no_grad():
+                        for _ in range(max_line_search_iters):
+                            X_proposed = X - alpha*inverse_hvp(obj_wrapper, X, grad_y)
+
+                            if self.check_feasible(X).all():
+                                X.copy_(X_proposed)
+                                break
+                            else:
+                                # We hit or crossed the boundary. Shrink the step size and try again.
+                                alpha *= tau
+                    
                     error = torch.norm(prev_X.detach() - X.detach(), dim=-1).max().item()
                     prev_X = X
 
