@@ -51,7 +51,7 @@ class BaseIPSteer(Steer):
     
     def steer(self, X: Tensor, T: float = 1.0) -> Tensor:
         print(X.shape)
-        if T == 0. or torch.vmap(self.check_feasible)(X): 
+        if T == 0. or torch.vmap(self.check_feasible)(X).all(): 
             return X
         return torch.vmap(self.solve)(X)
     
