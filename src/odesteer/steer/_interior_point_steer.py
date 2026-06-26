@@ -51,19 +51,19 @@ class BaseIPSteer(Steer):
     
     def steer(self, X: Tensor, T: float = 1.0) -> Tensor:
         print(X.shape)
-        if T == 0. or torch.vmap(self.check_feasible)(X).all(): 
+        if T == 0. or self.check_feasible(X).all(): 
             return X
-        return torch.vmap(self.solve)(X)
+        return self.solve(X)
     
     def obj(self, X, X_0, eta):
         diff = X-X_0
-        return 0.5*eta*torch.sum(torch.square(diff)) - torch.log(self.clf.forward(X) - (0.5 + self.eps) + 1e-8)
+        return 0.5*eta*torch.sum(torch.square(diff), dim=-1) - torch.log(self.clf.forward(X) - (0.5 + self.eps) + 1e-8)
 
     def solve(self, X_0: Tensor, tol = 1e-6, max_iter = 100) -> Tensor:
         self.clf.to(X_0.device)
         print(X_0.shape)
         error = 10e6
-        X = self.X_feas.to(X_0.device).clone()
+        X = self.X_feas.to(X_0.device).unsqueeze(0).expand_as(X_0).clone()
         eta = self.eta_0
         prev_X = X_0
         
@@ -74,12 +74,13 @@ class BaseIPSteer(Steer):
                 error = 10e6
                 while error >= tol and inner_k <= max_iter:
                     X = X.detach().requires_grad_(True)
-                    obj_wrapper = lambda x: self.obj(x, X_0, eta)
+                    obj_wrapper = lambda x: self.obj(x, X_0, eta).sum()
                     
                     y = obj_wrapper(X)
+                    y = y.sum()
                     grad_y = torch.autograd.grad(y, X, create_graph=True)[0]
                     X = X - inverse_hvp(obj_wrapper, X, grad_y)
-                    error = torch.norm(prev_X.detach() - X.detach())
+                    error = torch.norm(prev_X.detach() - X.detach(), dim=-1).max().item()
                     prev_X = X
 
                     inner_k += 1
