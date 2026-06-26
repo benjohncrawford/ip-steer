@@ -50,9 +50,9 @@ class BaseIPSteer(Steer):
         return raw_grad / (raw_grad.norm(dim = -1, keepdim = True) + 1e-10)
     
     def steer(self, X: Tensor, T: float = 1.0) -> Tensor:
-        if T == 0. or self.check_feasible(X): 
-            return X
         print(X.shape)
+        if T == 0. or torch.vmap(self.check_feasible)(X): 
+            return X
         return torch.vmap(self.solve)(X)
     
     def obj(self, X, X_0, eta):
