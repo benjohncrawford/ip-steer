@@ -50,7 +50,7 @@ class BaseIPSteer(Steer):
         return raw_grad / (raw_grad.norm(dim = -1, keepdim = True) + 1e-10)
     
     def steer(self, X: Tensor, T: float = 1.0) -> Tensor:
-        if T == 0.: 
+        if T == 0. or self.check_feasible(X): 
             return X
         return self.solve(X, self.eta_0)
     
@@ -65,26 +65,30 @@ class BaseIPSteer(Steer):
         eta = eta_0
         prev_X = X_0
         
-        k = 0
+        outer_k = 0
         with torch.enable_grad():
-            while error >= tol and k <= max_iter:
-                X = X.detach().requires_grad_(True)
-                obj_wrapper = lambda x: self.obj(x, X_0, eta)
-                
-                y = obj_wrapper(X)
-                grad_y = torch.autograd.grad(y, X, create_graph=True)[0]
-                X = X - inverse_hvp(obj_wrapper, X, grad_y)
-                error = torch.norm(prev_X.detach() - X.detach())
-                prev_X = X
+            inner_k = 0
+            while outer_k <= 10:
+                while error >= tol and inner_k <= max_iter:
+                    X = X.detach().requires_grad_(True)
+                    obj_wrapper = lambda x: self.obj(x, X_0, eta)
+                    
+                    y = obj_wrapper(X)
+                    grad_y = torch.autograd.grad(y, X, create_graph=True)[0]
+                    X = X - inverse_hvp(obj_wrapper, X, grad_y)
+                    error = torch.norm(prev_X.detach() - X.detach())
+                    prev_X = X
+
+                    inner_k += 1
                 print("-------------------------------")
-                print(f"Iteration {k}:\nerror: {error}\nX:{X}\neta:{eta}\nobj: {y}\nh(a): {self.clf.forward(X)}\nfeasible: {self.check_feasible(X)}")
+                print(f"Iteration {outer_k}:\nerror: {error}\nX:{X}\neta:{eta}\nobj: {y}\nh(a): {self.clf.forward(X).item()}\nfeasible: {self.check_feasible(X)}")
                 print("-------------------------------")
+                outer_k += 1
                 eta = eta * self.delta
-                k += 1
         return X.detach()
 
     def check_feasible(self, X):
-        return self.clf.predict(X)
+        return self.clf.forward(X).item() >= (0.5 + self.eps)
 
     def find_init_feas(self, target_device) -> Tensor:
         X_0 = torch.ones(2048, requires_grad = True, device=target_device)
