@@ -81,26 +81,41 @@ class BaseIPSteer(Steer):
                     y = obj_wrapper(X)
                     y = y.sum()
                     grad_y = torch.autograd.grad(y, X, create_graph=True)[0]
-                    alpha = 1.0  # Start with the full Newton step
+                    alpha = torch.ones((X.shape[0], 1), device=X.device) # Start full Newton step, batched
+                    
                     step = inverse_hvp(obj_wrapper, X, grad_y)
                     with torch.no_grad():
                         for _ in range(max_line_search_iters):
-                            X_proposed = X - alpha*step
+                            X_proposed = X - alpha * step
 
-                            if self.check_feasible(X_proposed).all():
-                                X.copy_(X_proposed)
+                            # Check feasibility per-sample
+                            feasible_mask = self.check_feasible(X_proposed)
+                            if feasible_mask.ndim == 1:
+                                feasible_mask = feasible_mask.unsqueeze(-1)
+
+                            if feasible_mask.all():
                                 break
                             else:
-                                # We hit or crossed the boundary. Shrink the step size and try again.
-                                alpha *= tau
+                                # We hit or crossed the boundary. Shrink step size ONLY for failures.
+                                alpha = torch.where(feasible_mask, alpha, alpha * tau)
+                        
+                        # Final safety check: if a sample is STILL infeasible after max line search 
+                        # iterations, revert its step to 0 to prevent NaNs in the log barrier.
+                        final_feasible = self.check_feasible(X_proposed)
+                        if final_feasible.ndim == 1:
+                            final_feasible = final_feasible.unsqueeze(-1)
+                            
+                        # Update X, keeping failed line-searches in their previous safe location
+                        safe_X_proposed = torch.where(final_feasible, X_proposed, X)
+                        X.copy_(safe_X_proposed)
                     
                     error = torch.norm(prev_X.detach() - X.detach(), dim=-1).max().item()
                     prev_X = X
 
                     inner_k += 1
-                print("-------------------------------")
-                print(f"Iteration {outer_k}:\nerror: {error}\nX:{X}\neta:{eta}\nobj: {y}\nh(a): {self.clf.forward(X)}\nfeasible: {self.check_feasible(X)}")
-                print("-------------------------------")
+                # print("-------------------------------")
+                # print(f"Iteration {outer_k}:\nerror: {error}\nX:{X}\neta:{eta}\nobj: {y}\nh(a): {self.clf.forward(X)}\nfeasible: {self.check_feasible(X)}")
+                # print("-------------------------------")
                 outer_k += 1
                 eta = eta * self.delta
         return X.detach()

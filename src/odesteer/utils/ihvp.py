@@ -50,7 +50,7 @@ def inverse_hvp(func, w, v):
     def hvp_wrapper(y):
         # torch.autograd.functional.hvp returns a tuple: (loss, hvp)
         _, hvp_out = torch.autograd.functional.hvp(func, w, v=y)
-        return hvp_out + 10e-4 * v
+        return hvp_out + 10e-4 * y
     
     # Solve H * y = v
     return cg(hvp_wrapper, v)
