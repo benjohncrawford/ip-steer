@@ -43,14 +43,17 @@ def cg(H_mvp, b, max_iters = 10, tol = 1e-6):
 
 def inverse_hvp(func, w, v):
     """
-    Takes in a function and calculates the product between the inverse hessian of
-    of that function at the point w and the vector v.
+    Takes in a twice continuously differentiable function and calculates the product 
+    between the inverse hessian of that function at the point w and the vector v.
     """
     # A wrapper for the HVP that only takes the vector 'y'
     def hvp_wrapper(y):
         # torch.autograd.functional.hvp returns a tuple: (loss, hvp)
-        _, hvp_out = torch.autograd.functional.hvp(func, w, v=y)
-        return hvp_out + 10e-4 * y
+        # _, hvp_out = torch.autograd.functional.hvp(func, w, v=y)
+        # torch.autograd.functional.vhp is significantly faster and is equivalent
+        # if the function is continuously twice differential which it is in our case. 
+        _, hvp_out = torch.autograd.functional.vhp(func, w, v=y).t()
+        return hvp_out + 1e-4 * y
     
     # Solve H * y = v
     return cg(hvp_wrapper, v)

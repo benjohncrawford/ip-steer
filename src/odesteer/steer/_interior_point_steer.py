@@ -59,7 +59,7 @@ class BaseIPSteer(Steer):
     
     def obj(self, X, X_0, eta):
         diff = X-X_0
-        return 0.5*eta*torch.sum(torch.square(diff), dim=-1) - torch.log(self.clf.forward(X) - (0.5 + self.eps) + 1e-8)
+        return 0.5*eta*torch.sum(torch.square(diff), dim=-1, keepdim=True) - torch.log(self.clf.forward(X) - (0.5 + self.eps) + 1e-8)
 
     def solve(self, X_0: Tensor, tol = 1e-6, max_iter = 100) -> Tensor:
         self.clf.to(X_0.device)
@@ -72,18 +72,25 @@ class BaseIPSteer(Steer):
         max_line_search_iters = 15
         tau = 0.5    # How much to shrink the step size on failure (e.g., cut in half)
         with torch.enable_grad():
-            inner_k = 0
+            
+            # Outer loop controls increasing eta
             while outer_k <= 10:
+                inner_k = 0
                 error = 10e6
+                # inner loop ensures we converge to the central path each time
                 while error >= tol and inner_k <= max_iter:
                     X = X.detach().requires_grad_(True)
-                    obj_wrapper = lambda x: self.obj(x, X_0, eta).sum()
-                    y = obj_wrapper(X)
-                    y = y.sum()
-                    grad_y = torch.autograd.grad(y, X, create_graph=True)[0]
-                    alpha = torch.ones((X.shape[0], 1), device=X.device) # Start full Newton step, batched
                     
+                    # Calc step summing so we can do batches
+                    obj_wrapper = lambda x: self.obj(x, X_0, eta).sum()
+                    y = obj_wrapper(X).sum()
+                    grad_y = torch.autograd.grad(y, X, create_graph=False)[0]
                     step = inverse_hvp(obj_wrapper, X, grad_y)
+                    
+                    # Start full Newton step, batched
+                    alpha = torch.ones((X.shape[0], 1), device=X.device) 
+                    
+                    # Reverse line search to ensure step does not take us out of feasible range
                     with torch.no_grad():
                         for _ in range(max_line_search_iters):
                             X_proposed = X - alpha * step
@@ -109,6 +116,7 @@ class BaseIPSteer(Steer):
                         safe_X_proposed = torch.where(final_feasible, X_proposed, X)
                         X.copy_(safe_X_proposed)
                     
+                    # Compute max change between previous and current x to see if we have converged
                     error = torch.norm(prev_X.detach() - X.detach(), dim=-1).max().item()
                     prev_X = X
 
