@@ -53,7 +53,7 @@ def inverse_hvp(func, w, v):
         # torch.autograd.functional.vhp is significantly faster and is equivalent
         # if the function is continuously twice differential which it is in our case. 
         _, hvp_out = torch.autograd.functional.vhp(func, w, v=y)
-        return hvp_out.T + 1e-4 * y
+        return hvp_out + 1e-4 * y
     
     # Solve H * y = v
     return cg(hvp_wrapper, v)
