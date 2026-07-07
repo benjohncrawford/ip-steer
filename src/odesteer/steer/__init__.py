@@ -3,7 +3,7 @@ from ._base_steer import Steer
 
 # Vector-based Steers
 from ._repe import RepE
-from ._caa import CAA
+from ._caa import CAA, MultiStepCAA
 from ._iti import ITI
 
 # OT-based Steers
@@ -18,7 +18,7 @@ from ._interior_point_steer import BaseIPSteer, IPSteer
 __all__ = [
     'Steer', 'VecSteer', 
     # Baselines
-    'RepE', 'CAA', 'ITI', 'MiMiC', 'LinAcT',
+    'RepE', 'CAA', 'ITI', 'MiMiC', 'LinAcT', 'MultiStepCAA'
     # ODESteer
     'BaseODESteer', 'ODESteer', 'RFFODESteer',
     'BaseStepODESteer', 'StepODESteer', 'RFFStepODESteer', 'BaseIPSteer', 'IPSteer'

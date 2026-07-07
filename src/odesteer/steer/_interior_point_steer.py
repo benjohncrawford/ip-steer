@@ -63,22 +63,22 @@ class BaseIPSteer(Steer):
 
     def solve(self, X_0: Tensor, tol = 1e-6, max_iter = 100) -> Tensor:
         self.clf.to(X_0.device)
-        error = 10e6
         X = self.X_feas.to(X_0.device).unsqueeze(0).expand_as(X_0).clone()
         eta = self.eta_0
-        prev_X = X_0
+        inner_prev_X = X_0
+        outer_prev_X = X_0
         
         outer_k = 0
+        outer_error = 10e6
         max_line_search_iters = 15
         tau = 0.5    # How much to shrink the step size on failure (e.g., cut in half)
         with torch.enable_grad():
-            
             # Outer loop controls increasing eta
-            while outer_k <= 10:
+            while outer_k <= max_iter and outer_error >= tol:
                 inner_k = 0
-                error = 10e6
+                inner_error = 10e6
                 # inner loop ensures we converge to the central path each time
-                while error >= tol and inner_k <= max_iter:
+                while inner_error >= tol and inner_k <= max_iter:
                     X = X.detach().requires_grad_(True)
                     
                     # Calc step summing so we can do batches
@@ -106,27 +106,25 @@ class BaseIPSteer(Steer):
                                 # We hit or crossed the boundary. Shrink step size ONLY for failures.
                                 alpha = torch.where(feasible_mask, alpha, alpha * tau)
                         
-                        # Final safety check: if a sample is STILL infeasible after max line search 
-                        # iterations, revert its step to 0 to prevent NaNs in the log barrier.
-                        final_feasible = self.check_feasible(X_proposed)
-                        if final_feasible.ndim == 1:
-                            final_feasible = final_feasible.unsqueeze(-1)
-                            
-                        # Update X, keeping failed line-searches in their previous safe location
-                        safe_X_proposed = torch.where(final_feasible, X_proposed, X)
-                        X.copy_(safe_X_proposed)
+                        X.copy_(X_proposed)
                     
-                    # Compute max change between previous and current x to see if we have converged
-                    error = torch.norm(prev_X.detach() - X.detach(), dim=-1).max().item()
-                    prev_X = X
+                    # Compute max change between previous and current x to see if we have converged to central path
+                    inner_error = self.calc_error(inner_prev_X, X)
+                    inner_prev_X = X
 
                     inner_k += 1
                 # print("-------------------------------")
                 # print(f"Iteration {outer_k}:\nerror: {error}\nX:{X}\neta:{eta}\nobj: {y}\nh(a): {self.clf.forward(X)}\nfeasible: {self.check_feasible(X)}")
                 # print("-------------------------------")
+                # Compute max change between previous and current x to see if we have converged to final solution
+                outer_error = self.calc_error(outer_prev_X, X)
+                inner_prev_X = X
                 outer_k += 1
                 eta = eta * self.delta
         return X.detach()
+
+    def calc_error(self, prev, cur):
+        return torch.norm(prev.detach() - cur.detach(), dim=-1).max().item()
 
     def check_feasible(self, X):
         self.clf.to(X.device)
@@ -144,7 +142,7 @@ class BaseIPSteer(Steer):
 
 class IPSteer(BaseIPSteer):
     '''
-    ODESteer used in the paper with NormedPolyCntSketch classifier
+    Interior Point Steering with NormedPolyCntSketch classifier
     '''
     def _init_clf(self, **kwargs) -> PolyClassifier:
         return PolyClassifier(**kwargs)
