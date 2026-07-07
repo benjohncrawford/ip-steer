@@ -106,7 +106,15 @@ class BaseIPSteer(Steer):
                                 # We hit or crossed the boundary. Shrink step size ONLY for failures.
                                 alpha = torch.where(feasible_mask, alpha, alpha * tau)
                         
-                        X.copy_(X_proposed)
+                        # if a sample is still infeasible after max line search 
+                        # iterations, revert its step to 0 to prevent NaNs in the log barrier.
+                        final_feasible = self.check_feasible(X_proposed)
+                        if final_feasible.ndim == 1:
+                            final_feasible = final_feasible.unsqueeze(-1)
+                            
+                        # Update X, keeping failed line-searches in their previous safe location
+                        safe_X_proposed = torch.where(final_feasible, X_proposed, X)
+                        X.copy_(safe_X_proposed)
                     
                     # Compute max change between previous and current x to see if we have converged to central path
                     inner_error = self.calc_error(inner_prev_X, X)
