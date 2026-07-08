@@ -12,10 +12,10 @@ from ._poly_cnt_sketch import PolyCntSketch, NormedPolyCntSketch
 
 
 class KernelClassifier(nn.Module):
-    def __init__(self, lin_clf_type: Literal['lr', 'svm'] = 'lr'):
+    def __init__(self, lin_clf_type: Literal['lr', 'svm'] = 'lr', kernel: nn.Module = None):
         super().__init__()
         self.lin_clf_type = lin_clf_type
-        self.kernel: nn.Module = None
+        self.kernel = kernel
         self.fitted: bool = False
         
     def fit(self, pos_X: Tensor, neg_X_or_labels: Tensor) -> 'KernelClassifier':
@@ -119,7 +119,24 @@ class PolyClassifier(KernelClassifier):
     ):
         super().__init__(lin_clf_type)
         self.kernel = PolyCntSketch(degree, n_components, gamma, coef0)    
+
+class MultiPolyClassifiers():
+    def __init__(
+        self,
+        degree: int = 2,
+        n_components: int = 100,
+        gamma: float = 1.0,
+        coef0: float = 0.1,
+        lin_clf_type: str = 'lr',
+        num_classifiers: int = 1
+    ):
+        self.kernel = PolyCntSketch(degree, n_components, gamma, coef0)  
         
+        self.num_classifiers = num_classifiers
+        self.classifiers = []
+        for _ in range(num_classifiers):
+            self.classifiers.append(KernelClassifier(lin_clf_type=lin_clf_type, kernel=self.kernel))
+            
 
 class NormedPolyClassifier(KernelClassifier):
     def __init__(

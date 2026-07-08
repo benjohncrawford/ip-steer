@@ -55,7 +55,7 @@ def inverse_hvp(func, w, v):
         _, hvp_out = torch.autograd.functional.vhp(func, w, v=y)
         return hvp_out + 1e-4 * y
     
-    # Solve H * y = v
+    # Solve H * y = v -> y = H^-1 * v
     return cg(hvp_wrapper, v)
         
         
