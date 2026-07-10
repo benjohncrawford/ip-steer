@@ -171,13 +171,14 @@ class MultiObjToxicityEvaluator:
             toxicity_scores[obj] = []
         for i in trange(num_batches, disable = not self.display, desc = "Evaluating toxicity"):
             batch_outputs = outputs[i * batch_size:(i + 1) * batch_size]
+            result = self.eval_toxicity(batch_outputs)
             for obj in toxicity_scores.keys():
-                (toxicity_scores[obj]).extend(self.eval_toxicity(batch_outputs))
+                (toxicity_scores[obj]).extend(result[obj])
         return toxicity_scores
 
     def eval_toxicity(self, outputs: list[str], sleep_time: int = 1) -> list[float]:
         # Create return dict with empty list for each objective
-        res = {"all" : []}
+        res = {"all": []}
         for obj in self.objectives:
             res[obj] = []
         for i in range(len(outputs)):
