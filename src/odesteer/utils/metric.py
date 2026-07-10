@@ -164,14 +164,23 @@ class MultiObjToxicityEvaluator:
     
     def batch_evaluate(self, outputs: list[str], batch_size: int = 10, show_progress: bool = True,) -> list[float]:
         num_batches = (len(outputs) + batch_size - 1) // batch_size
-        toxicity_scores = []
+        
+        # Create return dict with empty list for each objective
+        toxicity_scores = {"all" : []}
+        for obj in self.objectives:
+            toxicity_scores[obj] = []
+            
         for i in trange(num_batches, disable = not self.display, desc = "Evaluating toxicity"):
             batch_outputs = outputs[i * batch_size:(i + 1) * batch_size]
-            toxicity_scores.extend(self.eval_toxicity(batch_outputs))
+            for obj in toxicity_scores.keys():
+                toxicity_scores[obj].extend(self.eval_toxicity(batch_outputs))
         return toxicity_scores
 
     def eval_toxicity(self, outputs: list[str], sleep_time: int = 1) -> list[float]:
-        res = []
+        # Create return dict with empty list for each objective
+        res = {"all" : []}
+        for obj in self.objectives:
+            res[obj] = []
         for i in range(len(outputs)):
             output = outputs[i]
             try:
@@ -183,19 +192,19 @@ class MultiObjToxicityEvaluator:
 
                 # Response has several results including a boolean flag and dict of category scores
                 scores = response["results"][0]["category_scores"]
-                final_score_dict = {}
+                
                 # Sum up the score in each category to get the overal score
                 overall_score = 0
                 for category, score in scores.items():
                     if category in self.objectives:
-                        final_score_dict[category] = score
+                        res[category].append(score)
                     overall_score += score
-                final_score_dict["all"] = overall_score
+                res["all"].append(overall_score)
 
             except Exception as e:
                 print(f'Error evaluating toxicity: {e}')
-                final_score_dict["all"]= np.nan
-            res.append(final_score_dict)
+                res["all"].append(np.nan) 
+                
             time.sleep(sleep_time)
         return res
 
