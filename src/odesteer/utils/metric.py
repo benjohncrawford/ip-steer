@@ -169,7 +169,6 @@ class MultiObjToxicityEvaluator:
         toxicity_scores = {"all" : []}
         for obj in self.objectives:
             toxicity_scores[obj] = []
-            
         for i in trange(num_batches, disable = not self.display, desc = "Evaluating toxicity"):
             batch_outputs = outputs[i * batch_size:(i + 1) * batch_size]
             for obj in toxicity_scores.keys():
@@ -203,6 +202,8 @@ class MultiObjToxicityEvaluator:
 
             except Exception as e:
                 print(f'Error evaluating toxicity: {e}')
+                for obj in self.objectives:
+                    res[obj].append(np.nan)
                 res["all"].append(np.nan) 
                 
             time.sleep(sleep_time)
