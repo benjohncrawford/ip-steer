@@ -149,7 +149,7 @@ class ToxicityEvaluator:
 
 class MultiObjToxicityEvaluator:
     def __init__(self, objectives, display: bool = False):
-        self.objectives = []
+        self.objectives = objectives
         self.display = display
         self.api_keys = []
         api_key = os.getenv('OPENAI_API_KEY')
@@ -172,7 +172,7 @@ class MultiObjToxicityEvaluator:
         for i in trange(num_batches, disable = not self.display, desc = "Evaluating toxicity"):
             batch_outputs = outputs[i * batch_size:(i + 1) * batch_size]
             for obj in toxicity_scores.keys():
-                toxicity_scores[obj].extend(self.eval_toxicity(batch_outputs))
+                (toxicity_scores[obj]).extend(self.eval_toxicity(batch_outputs))
         return toxicity_scores
 
     def eval_toxicity(self, outputs: list[str], sleep_time: int = 1) -> list[float]:
@@ -196,15 +196,15 @@ class MultiObjToxicityEvaluator:
                 overall_score = 0
                 for category, score in scores.items():
                     if category in self.objectives:
-                        res[category].append(score)
+                        (res[category]).append(score)
                     overall_score += score
-                res["all"].append(overall_score)
+                (res["all"]).append(overall_score)
 
             except Exception as e:
                 print(f'Error evaluating toxicity: {e}')
                 for obj in self.objectives:
-                    res[obj].append(np.nan)
-                res["all"].append(np.nan) 
+                    (res[obj]).append(np.nan)
+                (res["all"]).append(np.nan) 
                 
             time.sleep(sleep_time)
         return res
