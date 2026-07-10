@@ -177,6 +177,22 @@ def load_jigsaw_activations(model_name: str, layer_idx: int) -> tuple[Tensor, Te
     )
     return pos_activations, neg_activations
 
+def load_multi_objective_jigsaw_activations(model_name: str, layer_idx: int, objectives) -> tuple[Tensor, Tensor]:
+    act_dir = get_project_dir() / 'data' / 'toxicity' / 'activations' / model_name
+    pos_activations = []
+    neg_activations = []
+    for obj in objectives: 
+        pos_activations.append(torch.load(
+            act_dir / f'jigsaw_pos_activations_layer{layer_idx}_objective_{obj}.pt', 
+            weights_only = True,
+            map_location = 'cpu',
+        ))
+        neg_activations.append(torch.load(   
+            act_dir / f'jigsaw_neg_activations_layer{layer_idx}_objective_{obj}.pt', 
+            weights_only = True,
+            map_location = 'cpu',
+        ))
+    return pos_activations, neg_activations
 
 def load_rtp_prompts(split: Literal["train", "validation", "test"]) -> list[str]:
     data_dir = get_project_dir() / 'data' / 'toxicity' / 'real_tox_prompts'
