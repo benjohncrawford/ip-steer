@@ -147,6 +147,58 @@ class ToxicityEvaluator:
         return toxic_score
 
 
+class MultiObjToxicityEvaluator:
+    def __init__(self, objectives, display: bool = False):
+        self.objectives = []
+        self.display = display
+        self.api_keys = []
+        api_key = os.getenv('OPENAI_API_KEY')
+        admin_key = os.getenv('OPENAI_ADMIN_KEY')
+        if api_key:
+            self.api_keys.append(api_key)
+        if admin_key:
+            self.api_keys.append(admin_key)
+        if len(self.api_keys) == 0:
+            raise ValueError("No Open AI API keys found")
+        self.client = OpenAI()
+    
+    def batch_evaluate(self, outputs: list[str], batch_size: int = 10, show_progress: bool = True,) -> list[float]:
+        num_batches = (len(outputs) + batch_size - 1) // batch_size
+        toxicity_scores = []
+        for i in trange(num_batches, disable = not self.display, desc = "Evaluating toxicity"):
+            batch_outputs = outputs[i * batch_size:(i + 1) * batch_size]
+            toxicity_scores.extend(self.eval_toxicity(batch_outputs))
+        return toxicity_scores
+
+    def eval_toxicity(self, outputs: list[str], sleep_time: int = 1) -> list[float]:
+        res = []
+        for i in range(len(outputs)):
+            output = outputs[i]
+            try:
+                # Send output to openai moderation platform
+                response = self.client.moderations.create(
+                    model="omni-moderation-latest",
+                    input=output,
+                ).to_dict()
+
+                # Response has several results including a boolean flag and dict of category scores
+                scores = response["results"][0]["category_scores"]
+                final_score_dict = {}
+                # Sum up the score in each category to get the overal score
+                overall_score = 0
+                for category, score in scores.items():
+                    if category in self.objectives:
+                        final_score_dict[category] = score
+                    overall_score += score
+                final_score_dict["all"] = overall_score
+
+            except Exception as e:
+                print(f'Error evaluating toxicity: {e}')
+                final_score_dict["all"]= np.nan
+            res.append(final_score_dict)
+            time.sleep(sleep_time)
+        return res
+
 class QualityEvaluator:
     def __init__(
         self,
