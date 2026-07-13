@@ -109,7 +109,7 @@ class BaseIPSteer(Steer):
                     
                     # Reverse line search to ensure step does not take us out of feasible range
                     with torch.no_grad():
-                        for _ in range(max_line_search_iters):
+                        for i in range(max_line_search_iters):
                             X_proposed = X - alpha * step
 
                             # Check feasibility per-sample
@@ -122,6 +122,7 @@ class BaseIPSteer(Steer):
                             else:
                                 # We hit or crossed the boundary. Shrink step size ONLY for failures.
                                 alpha = torch.where(feasible_mask, alpha, alpha * tau)
+                            print(f"Line Search {i}")
                         
                         # if a sample is still infeasible after max line search 
                         # iterations, revert its step to 0 to prevent NaNs in the log barrier.
@@ -136,11 +137,14 @@ class BaseIPSteer(Steer):
                     # Compute max change between previous and current x to see if we have converged to central path
                     inner_error = self.calc_error(inner_prev_X, X)
                     inner_prev_X = X
-
+                    print("-------------------------------")
+                    print(f"Inner Iteration {inner_k}:\nerror: {inner_error}")
+                    print("-------------------------------")
+                    
                     inner_k += 1
-                # print("-------------------------------")
-                # print(f"Iteration {outer_k}:\nerror: {error}\nX:{X}\neta:{eta}\nobj: {y}\nh(a): {self.clf.forward(X)}\nfeasible: {self.check_feasible(X)}")
-                # print("-------------------------------")
+                print("-------------------------------")
+                print(f"Iteration {outer_k}:\nerror: {outer_error}\nX:{X}\neta:{eta}\nobj: {y}\nh(a): {self.clf.forward(X)}\nfeasible: {self.check_feasible(X)}")
+                print("-------------------------------")
                 # Compute max change between previous and current x to see if we have converged to final solution
                 outer_error = self.calc_error(outer_prev_X, X)
                 inner_prev_X = X
