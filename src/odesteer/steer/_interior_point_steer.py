@@ -74,7 +74,7 @@ class BaseIPSteer(Steer):
         clf_probs = self.clf.forward(X) 
         
         # Calculate the barrier and sum across all classifiers
-        barrier = torch.log(clf_probs - (0.5 + self.eps) + 1e-8)
+        barrier = torch.log(clf_probs - (0.5 + self.eps + 1e-8))
         res -= barrier.sum(dim=-1, keepdim=True) 
         return res
 
@@ -82,8 +82,9 @@ class BaseIPSteer(Steer):
         self.clf.to(X_0.device)
         X = self.X_feas.to(X_0.device).unsqueeze(0).expand_as(X_0).clone()
         eta = self.eta_0
-        inner_prev_X = X_0
-        outer_prev_X = X_0
+        max_eta = 10e9
+        inner_prev_X = X
+        outer_prev_X = X
         
         outer_k = 0
         outer_error = 10e6
@@ -91,7 +92,7 @@ class BaseIPSteer(Steer):
         tau = 0.5    # How much to shrink the step size on failure (e.g., cut in half)
         with torch.enable_grad():
             # Outer loop controls increasing eta
-            while outer_k <= max_iter and outer_error >= tol:
+            while outer_k <= max_iter and outer_error >= tol and eta <= max_eta:
                 inner_k = 0
                 inner_error = 10e6
                 # inner loop ensures we converge to the central path each time
@@ -147,7 +148,7 @@ class BaseIPSteer(Steer):
                 print("-------------------------------")
                 # Compute max change between previous and current x to see if we have converged to final solution
                 outer_error = self.calc_error(outer_prev_X, X)
-                inner_prev_X = X
+                outer_prev_X = X
                 outer_k += 1
                 eta = eta * self.delta
         return X.detach()
