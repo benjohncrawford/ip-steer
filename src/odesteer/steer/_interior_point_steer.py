@@ -142,11 +142,11 @@ class BaseIPSteer(Steer):
                     print("-------------------------------")
                     inner_prev_X = X.clone()                    
                     inner_k += 1
+                outer_error = self.calc_error(outer_prev_X, X)
                 print("-------------------------------")
                 print(f"Iteration {outer_k}:\nerror: {outer_error}\nX:{X}\neta:{eta}\nobj: {y}\nh(a): {self.clf.forward(X)}\nfeasible: {self.check_feasible(X)}")
                 print("-------------------------------")
                 # Compute max change between previous and current x to see if we have converged to final solution
-                outer_error = self.calc_error(outer_prev_X, X)
                 outer_prev_X = X
                 outer_k += 1
                 eta = min(eta * self.delta, max_eta)
