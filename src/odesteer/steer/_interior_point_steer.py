@@ -137,11 +137,10 @@ class BaseIPSteer(Steer):
                     
                     # Compute max change between previous and current x to see if we have converged to central path
                     inner_error = self.calc_error(inner_prev_X, X)
-                    inner_prev_X = X
                     print("-------------------------------")
                     print(f"Inner Iteration {inner_k}:\nerror: {inner_error}\nX:{X}\ninner_prev_X:{inner_prev_X}")
                     print("-------------------------------")
-                    
+                    inner_prev_X = X                    
                     inner_k += 1
                 print("-------------------------------")
                 print(f"Iteration {outer_k}:\nerror: {outer_error}\nX:{X}\neta:{eta}\nobj: {y}\nh(a): {self.clf.forward(X)}\nfeasible: {self.check_feasible(X)}")
@@ -150,7 +149,7 @@ class BaseIPSteer(Steer):
                 outer_error = self.calc_error(outer_prev_X, X)
                 outer_prev_X = X
                 outer_k += 1
-                eta = max(eta * self.delta, max_eta)
+                eta = min(eta * self.delta, max_eta)
         return X.detach()
 
     def calc_error(self, prev, cur):
