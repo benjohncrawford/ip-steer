@@ -1,6 +1,6 @@
 import torch
 
-def cg(H_mvp, b, max_iters = 100, tol = 1e-6):
+def cg(H_mvp, b, max_iters = 10, tol = 1e-6):
     """
     Solves Hw = b where H_mvp is a function that calculates
     the matrix vector product between H and a vector v i.e. H_mvp(v) = H@v
