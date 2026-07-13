@@ -83,8 +83,7 @@ class BaseIPSteer(Steer):
         X = self.X_feas.to(X_0.device).unsqueeze(0).expand_as(X_0).clone()
         eta = self.eta_0
         max_eta = 10e9
-        inner_prev_X = X
-        outer_prev_X = X
+        outer_prev_X = X.clone()
         
         outer_k = 0
         outer_error = 10e6
@@ -140,7 +139,7 @@ class BaseIPSteer(Steer):
                     print("-------------------------------")
                     print(f"Inner Iteration {inner_k}:\nerror: {inner_error}\nX:{X}\ninner_prev_X:{inner_prev_X}")
                     print("-------------------------------")
-                    inner_prev_X = X                    
+                    inner_prev_X = X.clone()                    
                     inner_k += 1
                 print("-------------------------------")
                 print(f"Iteration {outer_k}:\nerror: {outer_error}\nX:{X}\neta:{eta}\nobj: {y}\nh(a): {self.clf.forward(X)}\nfeasible: {self.check_feasible(X)}")
