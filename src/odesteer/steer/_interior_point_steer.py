@@ -42,9 +42,22 @@ class BaseIPSteer(Steer):
         self.alpha = alpha
                 
     def fit(self, pos_Xs, neg_X_or_labels) -> 'BaseIPSteer':
-        self.clf.fit(pos_Xs, neg_X_or_labels)
-        self.X_feas = pos_Xs[0][0]
-        # self.X_feas = self.find_init_feas(target_device = pos_X.device)
+        if torch.is_tensor(pos_Xs):
+            pos_Xs = [pos_Xs]
+            neg_X_or_labels = [neg_X_or_labels]
+            
+        # Fit all individual classifiers
+        for pos_X, neg_X_or_label in zip(pos_Xs, neg_X_or_labels):
+            self.clf.fit(pos_X, neg_X_or_label)
+            
+        # Create a candidate starting point by averaging the first positive 
+        # sample from every objective, giving it a decent head start.
+        stacked_pos = torch.stack([x[0] for x in pos_Xs])
+        candidate_X = stacked_pos.mean(dim=0).unsqueeze(0) 
+        
+        # Run Phase I to push the candidate strictly into the feasible region
+        self.X_feas = self.find_init_feas(candidate_X)
+        
         return self
     
     def vector_field(self, X: Tensor) -> Tensor:
@@ -145,9 +158,42 @@ class BaseIPSteer(Steer):
         # Returns True only if a sample is feasible across ALL classifiers
         return (self.clf.forward(X) >= (0.5 + self.eps)).all(dim=-1)
 
-    # def find_init_feas(self, target_device) -> Tensor:
-    #     X_0 = torch.zeros(2048, requires_grad = True, device=target_device)
-    #     return self.solve(X_0, eta_0 = 0, max_iter=1000)
+    def find_init_feas(self, X_init: Tensor, max_iters: int = 1000, lr: float = 0.01) -> Tensor:
+        """
+        Finds an initial feasible point by minimizing constraint violations using Adam.
+        """
+        self.clf.to(X_init.device)
+        
+        # Clone to avoid modifying the original and enable gradients
+        X_feas = X_init.detach().clone().requires_grad_(True)
+        
+        # Use Adam for rapid convergence to the feasible region
+        optimizer = torch.optim.Adam([X_feas], lr=lr)
+        
+        target_prob = 0.5 + self.eps
+        
+        for i in range(max_iters):
+            optimizer.zero_grad()
+            
+            # Forward pass: shape [num_classifiers] or [batch, num_classifiers]
+            probs = self.clf.forward(X_feas)
+            
+            # Calculate violations: How far below the target probability are we?
+            # torch.relu ensures we ONLY penalize classifiers where prob < target
+            violations = torch.relu(target_prob - probs)
+            
+            # If all violations are exactly 0, we are inside the intersection of all safe regions!
+            if (violations == 0).all():
+                # print(f"→ Feasible point found in {i} iterations.")
+                return X_feas.detach()
+            
+            # Loss is the sum of squared constraint violations
+            loss = torch.sum(violations ** 2)
+            loss.backward()
+            optimizer.step()
+            
+        print("Warning: Phase I reached max_iters without finding a strictly feasible point.")
+        return X_feas.detach()
 
     @abstractmethod
     def _init_clf(self, **kwargs) -> KernelClassifier:
