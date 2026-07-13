@@ -142,11 +142,15 @@ class BaseIPSteer(Steer):
         return torch.norm(prev.detach() - cur.detach(), dim=-1).max().item()
 
     def check_feasible(self, X):
+        # initialize a boolean mask of True for the entire batch
+        feasible_mask = torch.ones(X.shape[0], dtype=torch.bool, device=X.device)
         for i in range(self.clf.num_classifiers):
-            self.clf.classifiers[i].to(X.device)
-            if not self.clf.classifiers[i].forward(X) >= (0.5 + self.eps):
-                return False
-        return True
+            self.clf.classifiers[i].to(X.device)    
+            # get the boolean mask for the current classifier
+            current_clf_feasible = self.clf.classifiers[i].forward(X) >= (0.5 + self.eps)
+            # update the overall mask (must be feasible across ALL classifiers)
+            feasible_mask = feasible_mask & current_clf_feasible
+        return feasible_mask
 
     # def find_init_feas(self, target_device) -> Tensor:
     #     X_0 = torch.zeros(2048, requires_grad = True, device=target_device)
@@ -162,7 +166,7 @@ class IPSteer(BaseIPSteer):
     '''
     Interior Point Steering with NormedPolyCntSketch classifier
     '''
-    def _init_clf(self, **kwargs) -> PolyClassifier:
+    def _init_clf(self, **kwargs) -> MultiPolyClassifiers:
         return MultiPolyClassifiers(**kwargs)
     
     
