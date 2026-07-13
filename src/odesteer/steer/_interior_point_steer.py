@@ -54,7 +54,7 @@ class BaseIPSteer(Steer):
         candidate_X = stacked_pos.mean(dim=0).unsqueeze(0) 
         
         # Run Phase 1 to push the candidate strictly into the feasible region
-        self.X_feas = self.find_init_feas(candidate_X)
+        self.X_feas = self.find_init_feas(candidate_X).squeeze(0)
         
         return self
     
