@@ -84,6 +84,7 @@ class BaseIPSteer(Steer):
         eta = self.eta_0
         max_eta = 10e9
         outer_prev_X = X.clone()
+        inner_prev_X = X.clone() 
         
         outer_k = 0
         outer_error = 10e6
