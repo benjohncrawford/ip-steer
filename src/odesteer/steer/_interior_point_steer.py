@@ -42,13 +42,8 @@ class BaseIPSteer(Steer):
         self.alpha = alpha
                 
     def fit(self, pos_Xs, neg_X_or_labels) -> 'BaseIPSteer':
-        # Check if it is a list of tensors i.e. multiple objectives and if it isn't make it a list with single item
-        if torch.is_tensor(pos_Xs):
-            pos_Xs = [pos_Xs]
-            neg_X_or_labels = [neg_X_or_labels]
-        for pos_X, neg_X_or_label in zip(pos_Xs, neg_X_or_labels):
-            self.clf.fit(pos_X, neg_X_or_label)
-            self.X_feas = pos_X[0]
+        self.clf.fit(pos_Xs, neg_X_or_labels)
+        self.X_feas = pos_Xs[0][0]
         # self.X_feas = self.find_init_feas(target_device = pos_X.device)
         return self
     
