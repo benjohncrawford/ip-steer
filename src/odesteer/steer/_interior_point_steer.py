@@ -64,7 +64,8 @@ class BaseIPSteer(Steer):
         diff = X-X_0
         res = 0.5*eta*torch.sum(torch.square(diff), dim=-1, keepdim=True)
         for i in range(self.clf.num_classifiers):
-            res -= torch.log(self.clf.classifiers[i].forward(X) - (0.5 + self.eps) + 1e-8)
+            clf_probs = self.clf.classifiers[i].forward(X).unsqueeze(-1)
+            res -= torch.log(clf_probs - (0.5 + self.eps) + 1e-8)
         return res 
 
     def solve(self, X_0: Tensor, tol = 1e-6, max_iter = 100) -> Tensor:
