@@ -74,7 +74,7 @@ class BaseIPSteer(Steer):
         clf_probs = self.clf.forward(X) 
         
         # Calculate the barrier and sum across all classifiers
-        barrier = torch.log(clf_probs - (0.5 + self.eps + 1e-8))
+        barrier = torch.log(clf_probs - (0.5 + self.eps) + 1e-8)
         res -= barrier.sum(dim=-1, keepdim=True) 
         return res
 
@@ -92,7 +92,7 @@ class BaseIPSteer(Steer):
         tau = 0.5    # How much to shrink the step size on failure (e.g., cut in half)
         with torch.enable_grad():
             # Outer loop controls increasing eta
-            while outer_k <= max_iter and outer_error >= tol and eta <= max_eta:
+            while outer_k <= max_iter and outer_error >= tol:
                 inner_k = 0
                 inner_error = 10e6
                 # inner loop ensures we converge to the central path each time
@@ -150,7 +150,7 @@ class BaseIPSteer(Steer):
                 outer_error = self.calc_error(outer_prev_X, X)
                 outer_prev_X = X
                 outer_k += 1
-                eta = eta * self.delta
+                eta = min(eta * self.delta, max_eta)
         return X.detach()
 
     def calc_error(self, prev, cur):
@@ -159,7 +159,7 @@ class BaseIPSteer(Steer):
     def check_feasible(self, X):
         self.clf.to(X.device)    
         # Returns True only if a sample is feasible across ALL classifiers
-        return (self.clf.forward(X) >= (0.5 + self.eps)).all(dim=-1)
+        return (self.clf.forward(X) >= (0.5 + self.eps + 1e-4)).all(dim=-1)
 
     def find_init_feas(self, X_init: Tensor, max_iters: int = 1000, lr: float = 0.01) -> Tensor:
         """
