@@ -46,16 +46,14 @@ class BaseIPSteer(Steer):
             pos_Xs = [pos_Xs]
             neg_X_or_labels = [neg_X_or_labels]
             
-        # Fit all individual classifiers
-        for pos_X, neg_X_or_label in zip(pos_Xs, neg_X_or_labels):
-            self.clf.fit(pos_X, neg_X_or_label)
+        self.clf.fit(pos_Xs, neg_X_or_labels)
             
         # Create a candidate starting point by averaging the first positive 
         # sample from every objective, giving it a decent head start.
         stacked_pos = torch.stack([x[0] for x in pos_Xs])
         candidate_X = stacked_pos.mean(dim=0).unsqueeze(0) 
         
-        # Run Phase I to push the candidate strictly into the feasible region
+        # Run Phase 1 to push the candidate strictly into the feasible region
         self.X_feas = self.find_init_feas(candidate_X)
         
         return self
