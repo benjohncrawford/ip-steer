@@ -123,7 +123,7 @@ class BaseIPSteer(Steer):
                             else:
                                 # We hit or crossed the boundary. Shrink step size ONLY for failures.
                                 alpha = torch.where(feasible_mask, alpha, alpha * tau)
-                            print(f"Line Search {i}")
+                            # print(f"Line Search {i}")
                         
                         # if a sample is still infeasible after max line search 
                         # iterations, revert its step to 0 to prevent NaNs in the log barrier.
@@ -137,15 +137,15 @@ class BaseIPSteer(Steer):
                     
                     # Compute max change between previous and current x to see if we have converged to central path
                     inner_error = self.calc_error(inner_prev_X, X)
-                    print("-------------------------------")
-                    print(f"Inner Iteration {inner_k}:\nerror: {inner_error}\nX:{X}\ninner_prev_X:{inner_prev_X}")
-                    print("-------------------------------")
+                    # print("-------------------------------")
+                    # print(f"Inner Iteration {inner_k}:\nerror: {inner_error}\nX:{X}\ninner_prev_X:{inner_prev_X}")
+                    # print("-------------------------------")
                     inner_prev_X = X.clone()                    
                     inner_k += 1
                 outer_error = self.calc_error(outer_prev_X, X)
-                print("-------------------------------")
-                print(f"Iteration {outer_k}:\nerror: {outer_error}\nX:{X}\neta:{eta}\nobj: {y}\nh(a): {self.clf.forward(X)}\nfeasible: {self.check_feasible(X)}")
-                print("-------------------------------")
+                # print("-------------------------------")
+                # print(f"Iteration {outer_k}:\nerror: {outer_error}\nX:{X}\neta:{eta}\nobj: {y}\nh(a): {self.clf.forward(X)}\nfeasible: {self.check_feasible(X)}")
+                # print("-------------------------------")
                 # Compute max change between previous and current x to see if we have converged to final solution
                 outer_prev_X = X.clone()
                 outer_k += 1
