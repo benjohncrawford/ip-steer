@@ -78,9 +78,9 @@ class BaseIPSteer(Steer):
         res -= barrier.sum(dim=-1, keepdim=True) 
         return res
 
-    def solve(self, X_0: Tensor, tol = 1e-5, max_iter = 100) -> Tensor:
+    def solve(self, X_0: Tensor, tol = 1e-3, max_iter = 10) -> Tensor:
         self.clf.to(X_0.device)
-        X = self.X_feas.to(X_0.device).unsqueeze(0).expand_as(X_0).clone()
+        X = self.get_warm_start(X_0).clone()
         eta = self.eta_0
         max_eta = 10e9
         outer_prev_X = X.clone()
@@ -151,6 +151,21 @@ class BaseIPSteer(Steer):
                 outer_k += 1
                 eta = min(eta * self.delta, max_eta)
         return X.detach()
+
+    def get_warm_start(self, X_0):
+        # Create a line from X_0 to the known strictly feasible point
+        X_f = self.X_feas.to(X_0.device).unsqueeze(0).expand_as(X_0)
+        
+        # Simple binary search or step-wise interpolation to find a boundary-adjacent feasible point
+        alphas = torch.linspace(0.01, 1.0, steps=20, device=X_0.device).view(-1, 1)
+        
+        for alpha in alphas:
+            # Move slightly towards the feasible point
+            candidate = X_0 + alpha * (X_f - X_0)
+            if self.check_feasible(candidate).all():
+                return candidate.clone().requires_grad_(True)
+        
+        return X_f.clone().requires_grad_(True) # Fallback
 
     def calc_error(self, prev, cur):
         return torch.norm(prev.detach() - cur.detach(), dim=-1).max().item()
