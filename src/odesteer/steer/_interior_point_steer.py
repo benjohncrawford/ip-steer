@@ -46,8 +46,8 @@ class BaseIPSteer(Steer):
         if torch.is_tensor(pos_Xs):
             pos_Xs = [pos_Xs]
             neg_X_or_labels = [neg_X_or_labels]
-        for i, (pos_X, neg_X_or_label) in enumerate(zip(pos_Xs, neg_X_or_labels)):
-            self.clf.classifiers[i].fit(pos_X, neg_X_or_label)
+        for pos_X, neg_X_or_label in zip(pos_Xs, neg_X_or_labels):
+            self.clf.fit(pos_X, neg_X_or_label)
             self.X_feas = pos_X[0]
         # self.X_feas = self.find_init_feas(target_device = pos_X.device)
         return self
@@ -63,14 +63,17 @@ class BaseIPSteer(Steer):
     def obj(self, X, X_0, eta):
         diff = X-X_0
         res = 0.5*eta*torch.sum(torch.square(diff), dim=-1, keepdim=True)
-        for i in range(self.clf.num_classifiers):
-            clf_probs = self.clf.classifiers[i].forward(X).unsqueeze(-1)
-            res -= torch.log(clf_probs - (0.5 + self.eps) + 1e-8)
-        return res 
+        
+        # Output shape: (batch_size, num_classifiers)
+        clf_probs = self.clf.forward(X) 
+        
+        # Calculate the barrier and sum across all classifiers
+        barrier = torch.log(clf_probs - (0.5 + self.eps) + 1e-8)
+        res -= barrier.sum(dim=-1, keepdim=True) 
+        return res
 
     def solve(self, X_0: Tensor, tol = 1e-6, max_iter = 100) -> Tensor:
-        for i in range(self.clf.num_classifiers):
-            self.clf.classifiers[i].to(X_0.device)
+        self.clf.to(X_0.device)
         X = self.X_feas.to(X_0.device).unsqueeze(0).expand_as(X_0).clone()
         eta = self.eta_0
         inner_prev_X = X_0
@@ -143,15 +146,9 @@ class BaseIPSteer(Steer):
         return torch.norm(prev.detach() - cur.detach(), dim=-1).max().item()
 
     def check_feasible(self, X):
-        # initialize a boolean mask of True for the entire batch
-        feasible_mask = torch.ones(X.shape[0], dtype=torch.bool, device=X.device)
-        for i in range(self.clf.num_classifiers):
-            self.clf.classifiers[i].to(X.device)    
-            # get the boolean mask for the current classifier
-            current_clf_feasible = self.clf.classifiers[i].forward(X) >= (0.5 + self.eps)
-            # update the overall mask (must be feasible across ALL classifiers)
-            feasible_mask = feasible_mask & current_clf_feasible
-        return feasible_mask
+        self.clf.to(X.device)    
+        # Returns True only if a sample is feasible across ALL classifiers
+        return (self.clf.forward(X) >= (0.5 + self.eps)).all(dim=-1)
 
     # def find_init_feas(self, target_device) -> Tensor:
     #     X_0 = torch.zeros(2048, requires_grad = True, device=target_device)

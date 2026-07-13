@@ -120,23 +120,6 @@ class PolyClassifier(KernelClassifier):
         super().__init__(lin_clf_type)
         self.kernel = PolyCntSketch(degree, n_components, gamma, coef0)    
 
-class MultiPolyClassifiers():
-    def __init__(
-        self,
-        degree: int = 2,
-        n_components: int = 100,
-        gamma: float = 1.0,
-        coef0: float = 0.1,
-        lin_clf_type: str = 'lr',
-        num_classifiers: int = 1
-    ):
-        self.kernel = PolyCntSketch(degree, n_components, gamma, coef0)  
-        
-        self.num_classifiers = num_classifiers
-        self.classifiers = []
-        for _ in range(num_classifiers):
-            self.classifiers.append(KernelClassifier(lin_clf_type=lin_clf_type, kernel=self.kernel))
-            
 
 class NormedPolyClassifier(KernelClassifier):
     def __init__(
@@ -149,3 +132,85 @@ class NormedPolyClassifier(KernelClassifier):
     ):
         super().__init__(lin_clf_type)
         self.kernel = NormedPolyCntSketch(degree, n_components, gamma, coef0)
+        
+class MultiPolyClassifiers(nn.Module):
+    def __init__(
+        self,
+        degree: int = 2,
+        n_components: int = 100,
+        gamma: float = 1.0,
+        coef0: float = 0.1,
+        lin_clf_type: str = 'lr',
+        num_classifiers: int = 1
+    ):
+        super().__init__()
+        self.kernel = PolyCntSketch(degree, n_components, gamma, coef0)  
+        
+        self.num_classifiers = num_classifiers
+        self.classifiers = []
+        self.lin_clf_type = lin_clf_type
+        self.fitted: bool = False
+        
+    def fit(self, pos_Xs: Tensor, neg_Xs_or_labels: Tensor) -> None:
+        coefs = []
+        intercepts = []
+        for pos_X, neg_X_or_labels in zip(pos_Xs, neg_Xs_or_labels):
+            if neg_X_or_labels.ndim == 1:
+                obj_coef, obj_intercept =  self._fit_with_labels(pos_X, neg_X_or_labels)
+            else:
+                assert neg_X_or_labels.shape[1] == pos_X.shape[1], \
+                    f'neg_X_or_labels.shape[1] = {neg_X_or_labels.shape[1]} != pos_X.shape[1] = {pos_X.shape[1]}'
+                obj_coef, obj_intercept = self._fit_with_two_sets(pos_X, neg_X_or_labels)
+            
+            coefs.append(obj_coef)
+            intercepts.append(obj_intercept)
+            
+        # Stack to create a 2D weight matrix: [n_features, num_classifiers]
+        self.register_buffer(
+            'coef', 
+            torch.stack(coefs, dim=1).to(dtype=pos_Xs[-1].dtype, device=pos_Xs[-1].device),
+        )
+        
+        # Cat to create a 1D bias vector: [num_classifiers]
+        self.register_buffer(
+            'intercept', 
+            torch.cat(intercepts).to(dtype=pos_Xs[-1].dtype, device=pos_Xs[-1].device),
+        )
+        self.fitted = True
+    
+    def forward(self, X: Tensor) -> Tensor:
+        assert self.fitted, 'KernelClassifier is not fitted'
+        return self.predict_proba(X)
+            
+    def predict_proba(self, X: Tensor) -> Tensor:
+        assert self.fitted, 'KernelClassifier is not fitted'
+        self.kernel.to(X.device)
+        Z = self.kernel.transform(X)
+        return (Z @ self.coef + self.intercept).sigmoid()
+        
+    def _fit_with_two_sets(self, pos_X: Tensor, neg_X: Tensor) -> 'KernelClassifier':
+        pi = len(pos_X) / (len(pos_X) + len(neg_X))
+        self.dre_coeff = (1 - pi) / pi
+        X = torch.cat([pos_X, neg_X], dim = 0)
+        y = torch.cat([torch.ones(pos_X.shape[0]), torch.zeros(neg_X.shape[0])])
+        return self._fit_with_labels(X, y)
+    
+    def _fit_with_labels(self, X: Tensor, y: Tensor) -> 'KernelClassifier':
+        pi = len(X[y == 1]) / len(X)
+        self.dre_coeff = (1 - pi) / pi
+        Z = self.kernel.fit_transform(X)
+        coef, intercept = self._fit_linear_clf(Z, y)
+        return coef, intercept
+    
+    def _fit_linear_clf(self, X: Tensor, y: Tensor):
+        if self.lin_clf_type == 'lr':
+            clf = LogisticRegression(max_iter = 1000)
+        elif self.lin_clf_type == 'svm':
+            clf = LinearSVC(max_iter = 1000)
+        else:
+            raise ValueError(f'Invalid linear classifier type: {self.lin_clf_type}')
+        clf.fit(X, y)
+        coef = torch.as_tensor(clf.coef_.ravel(), dtype = X.dtype, device = X.device)
+        intercept = torch.as_tensor(clf.intercept_.ravel(), dtype = X.dtype, device = X.device)
+        self.fitted = True
+        return coef, intercept   
