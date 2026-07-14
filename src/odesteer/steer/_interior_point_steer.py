@@ -175,7 +175,7 @@ class BaseIPSteer(Steer):
         # Returns True only if a sample is feasible across ALL classifiers
         return (self.clf.forward(X) >= (0.5 + self.eps + 1e-4)).all(dim=-1)
 
-    def find_init_feas(self, X_init: Tensor, max_iters: int = 1000, lr: float = 0.01) -> Tensor:
+    def find_init_feas(self, X_init: Tensor, max_iters: int = 10000, lr: float = 0.01) -> Tensor:
         """
         Finds an initial feasible point by minimizing constraint violations using Adam.
         """
@@ -190,24 +190,29 @@ class BaseIPSteer(Steer):
         target_prob = 0.5 + self.eps
         
         for i in range(max_iters):
+            print("-------------------------------------------------")
+            print(f"Iteration: {i}")
             optimizer.zero_grad()
             
             # Forward pass: shape [num_classifiers] or [batch, num_classifiers]
             probs = self.clf.forward(X_feas)
+            print(f"probs:{probs}")
             
             # Calculate violations: How far below the target probability are we?
             # torch.relu ensures we ONLY penalize classifiers where prob < target
             violations = torch.relu(target_prob - probs)
-            
+            print(f"violations: {violations}")
             # If all violations are exactly 0, we are inside the intersection of all safe regions!
             if (violations == 0).all():
-                # print(f"→ Feasible point found in {i} iterations.")
+                print(f"→ Feasible point found in {i} iterations.")
                 return X_feas.detach()
             
             # Loss is the sum of squared constraint violations
             loss = torch.sum(violations ** 2)
+            print(f"loss: {loss}")
             loss.backward()
             optimizer.step()
+            print("---------------------------------------------------")
             
         print("Warning: Phase I reached max_iters without finding a strictly feasible point.")
         return X_feas.detach()
