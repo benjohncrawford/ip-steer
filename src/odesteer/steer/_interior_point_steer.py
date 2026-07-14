@@ -193,7 +193,7 @@ class BaseIPSteer(Steer):
             print("-------------------------------------------------")
             print(f"Iteration: {i}")
             optimizer.zero_grad()
-            
+            print(f"X_feas: {X_feas}")
             # Forward pass: shape [num_classifiers] or [batch, num_classifiers]
             probs = self.clf.forward(X_feas)
             print(f"probs:{probs}")
