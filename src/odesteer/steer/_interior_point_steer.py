@@ -175,32 +175,34 @@ class BaseIPSteer(Steer):
         # Returns True only if a sample is feasible across ALL classifiers
         return (self.clf.forward(X) >= (0.5 + self.eps + 1e-4)).all(dim=-1)
 
-    def find_init_feas(self, X_init: Tensor, max_iters: int = 10000, lr: float = 0.01) -> Tensor:
+    def find_init_feas(self, X_0: Tensor, max_iters: int = 10000, lr: float = 0.01) -> Tensor:
         """
         Finds an initial feasible point by minimizing constraint violations using Adam.
         """
-        self.clf.to(X_init.device)
+        self.clf.to(X_0.device)
         
         # Clone to avoid modifying the original and enable gradients
-        X_feas = X_init.detach().clone().requires_grad_(True)
+        X_feas = X_0.detach().clone().requires_grad_(True)
         
         # Use Adam for rapid convergence to the feasible region
         optimizer = torch.optim.Adam([X_feas], lr=lr)
         
         target_prob = 0.5 + self.eps
+        # Convert the target probability to a target logit using the inverse sigmoid (logit) function
+        # math: log(p / (1 - p))
+        target_logit = torch.log(torch.tensor(target_prob / (1.0 - target_prob), device=X_0.device))
         
         for i in range(max_iters):
             print("-------------------------------------------------")
             print(f"Iteration: {i}")
             optimizer.zero_grad()
             print(f"X_feas: {X_feas}")
-            # Forward pass: shape [num_classifiers] or [batch, num_classifiers]
-            probs = self.clf.forward(X_feas)
-            print(f"probs:{probs}")
+            logits = self.clf.predict_raw_prob(X_feas)
+            print(f"probs:{logits}")
             
             # Calculate violations: How far below the target probability are we?
             # torch.relu ensures we ONLY penalize classifiers where prob < target
-            violations = torch.relu(target_prob - probs)
+            violations = torch.relu(target_logit - logits)
             print(f"violations: {violations}")
             # If all violations are exactly 0, we are inside the intersection of all safe regions!
             if (violations == 0).all():

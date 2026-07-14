@@ -181,7 +181,13 @@ class MultiPolyClassifiers(nn.Module):
     def forward(self, X: Tensor) -> Tensor:
         assert self.fitted, 'KernelClassifier is not fitted'
         return self.predict_proba(X)
-            
+    
+    def predict_raw_prob(self, X: Tensor) -> Tensor:
+        assert self.fitted, 'KernelClassifier is not fitted'
+        self.kernel.to(X.device)
+        Z = self.kernel.transform(X)
+        return (Z @ self.coef + self.intercept)
+    
     def predict_proba(self, X: Tensor) -> Tensor:
         assert self.fitted, 'KernelClassifier is not fitted'
         self.kernel.to(X.device)
