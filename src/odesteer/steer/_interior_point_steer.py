@@ -197,8 +197,10 @@ class BaseIPSteer(Steer):
             print(f"Iteration: {i}")
             optimizer.zero_grad()
             print(f"X_feas: {X_feas}")
+            with torch.no_grad():
+                probs = self.clf.forward(X)
             logits = self.clf.predict_raw_prob(X_feas)
-            print(f"probs:{logits}")
+            print(f"probs:{probs}")
             
             # Calculate violations: How far below the target probability are we?
             # torch.relu ensures we ONLY penalize classifiers where prob < target
