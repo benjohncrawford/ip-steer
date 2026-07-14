@@ -198,7 +198,7 @@ class BaseIPSteer(Steer):
             optimizer.zero_grad()
             print(f"X_feas: {X_feas}")
             with torch.no_grad():
-                probs = self.clf.forward(X)
+                probs = self.clf.forward(X_feas)
             logits = self.clf.predict_raw_prob(X_feas)
             print(f"probs:{probs}")
             
