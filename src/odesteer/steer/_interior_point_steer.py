@@ -78,7 +78,7 @@ class BaseIPSteer(Steer):
         res -= barrier.sum(dim=-1, keepdim=True) 
         return res
 
-    def solve(self, X_0: Tensor, tol = 1e-3, max_iter = 10) -> Tensor:
+    def solve(self, X_0: Tensor, tol = 1e-5, max_outer_iter = 100, max_inner_iter = 10) -> Tensor:
         self.clf.to(X_0.device)
         X = self.get_warm_start(X_0).clone()
         eta = self.eta_0
@@ -92,11 +92,11 @@ class BaseIPSteer(Steer):
         tau = 0.5    # How much to shrink the step size on failure (e.g., cut in half)
         with torch.enable_grad():
             # Outer loop controls increasing eta
-            while outer_k <= max_iter and outer_error >= tol:
+            while outer_k <= max_outer_iter and outer_error >= tol:
                 inner_k = 0
                 inner_error = 10e6
                 # inner loop ensures we converge to the central path each time
-                while inner_error >= tol and inner_k <= max_iter:
+                while inner_error >= tol and inner_k <= max_inner_iter:
                     X = X.detach().requires_grad_(True)
                     
                     # Calc step summing so we can do batches
