@@ -88,7 +88,7 @@ class BaseIPSteer(Steer):
         
         outer_k = 0
         outer_error = 10e6
-        max_line_search_iters = 15
+        max_line_search_iters = 8
         tau = 0.5    # How much to shrink the step size on failure (e.g., cut in half)
         with torch.enable_grad():
             # Outer loop controls increasing eta
@@ -102,34 +102,34 @@ class BaseIPSteer(Steer):
                     # Calc step summing so we can do batches
                     obj_wrapper = lambda x: self.obj(x, X_0, eta).sum()
                     y = obj_wrapper(X).sum()
-                    step = torch.autograd.grad(y, X, create_graph=False)[0]
-                    # step = inverse_hvp(obj_wrapper, X, grad_y)
+                    grad_y = torch.autograd.grad(y, X, create_graph=False)[0]
+                    step = inverse_hvp(obj_wrapper, X, grad_y)
                     
                     # Start full Newton step, batched
                     alpha = torch.ones((X.shape[0], 1), device=X.device) 
                     
                     # Reverse line search to ensure step does not take us out of feasible range
                     with torch.no_grad():
-                        current_obj = self.obj(X, X_0, eta)
+                        # current_obj = self.obj(X, X_0, eta)
                         for i in range(max_line_search_iters):
                             X_proposed = X - alpha * step
                             
-                            # 2. Check if the objective actually decreased
-                            proposed_obj = self.obj(X_proposed, X_0, eta)
+                            # Check if the objective actually decreased
+                            # proposed_obj = self.obj(X_proposed, X_0, eta)
+                            # descent_mask = proposed_obj < current_obj
 
                             # Check feasibility per-sample
                             feasible_mask = self.check_feasible(X_proposed)
-                            descent_mask = proposed_obj < current_obj
                             if feasible_mask.ndim == 1:
                                 feasible_mask = feasible_mask.unsqueeze(-1)
                                 
-                            valid_mask = feasible_mask & descent_mask
-                            if valid_mask.all():
+                            # valid_mask = feasible_mask & descent_mask
+                            if feasible_mask.all():
                                 break
                             else:
                                 # We hit or crossed the boundary or didn't decrease objective function.
                                 # Shrink step size ONLY for failures.
-                                alpha = torch.where(valid_mask, alpha, alpha * tau)
+                                alpha = torch.where(feasible_mask, alpha, alpha * tau)
                             # print(f"Line Search {i}")
                         
                         # if a sample is still infeasible after max line search 
@@ -203,19 +203,19 @@ class BaseIPSteer(Steer):
         target_logit = torch.log(torch.tensor(target_prob / (1.0 - target_prob), device=X_0.device))
         
         for i in range(max_iters):
-            print("-------------------------------------------------")
-            print(f"Iteration: {i}")
+            # print("-------------------------------------------------")
+            # print(f"Iteration: {i}")
             optimizer.zero_grad()
-            print(f"X_feas: {X_feas}")
+            # print(f"X_feas: {X_feas}")
             with torch.no_grad():
                 probs = self.clf.forward(X_feas)
             logits = self.clf.predict_raw_prob(X_feas)
-            print(f"probs:{probs}")
+            # print(f"probs:{probs}")
             
             # Calculate violations: How far below the target probability are we?
             # torch.relu ensures we ONLY penalize classifiers where prob < target
             violations = torch.relu(target_logit - logits)
-            print(f"violations: {violations}")
+            # print(f"violations: {violations}")
             # If all violations are exactly 0, we are inside the intersection of all safe regions!
             if (violations == 0).all():
                 print(f"→ Feasible point found in {i} iterations.")
@@ -223,10 +223,10 @@ class BaseIPSteer(Steer):
             
             # Loss is the sum of squared constraint violations
             loss = torch.sum(violations ** 2)
-            print(f"loss: {loss}")
+            # print(f"loss: {loss}")
             loss.backward()
             optimizer.step()
-            print("---------------------------------------------------")
+            # print("---------------------------------------------------")
             
         print("Warning: Phase I reached max_iters without finding a strictly feasible point.")
         return X_feas.detach()
