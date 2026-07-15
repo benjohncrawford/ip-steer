@@ -102,8 +102,8 @@ class BaseIPSteer(Steer):
                     # Calc step summing so we can do batches
                     obj_wrapper = lambda x: self.obj(x, X_0, eta).sum()
                     y = obj_wrapper(X).sum()
-                    grad_y = torch.autograd.grad(y, X, create_graph=False)[0]
-                    step = inverse_hvp(obj_wrapper, X, grad_y)
+                    step = torch.autograd.grad(y, X, create_graph=False)[0]
+                    # step = inverse_hvp(obj_wrapper, X, grad_y)
                     
                     # Start full Newton step, batched
                     alpha = torch.ones((X.shape[0], 1), device=X.device) 
