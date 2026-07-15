@@ -78,7 +78,7 @@ class BaseIPSteer(Steer):
         res -= barrier.sum(dim=-1, keepdim=True) 
         return res
 
-    def solve(self, X_0: Tensor, tol = 1e-6, max_outer_iter = 100, max_inner_iter = 100) -> Tensor:
+    def solve(self, X_0: Tensor, tol = 1e-4, max_outer_iter = 20, max_inner_iter = 20) -> Tensor:
         self.clf.to(X_0.device)
         X = self.get_warm_start(X_0).clone()
         eta = self.eta_0
