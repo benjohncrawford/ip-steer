@@ -162,19 +162,21 @@ class BaseIPSteer(Steer):
         return X.detach()
 
     def get_warm_start(self, X_0):
-        # Create a line from X_0 to the known strictly feasible point
         X_f = self.X_feas.to(X_0.device).unsqueeze(0).expand_as(X_0)
-        
-        # Simple binary search or step-wise interpolation to find a boundary-adjacent feasible point
         alphas = torch.linspace(0.01, 1.0, steps=20, device=X_0.device).view(-1, 1)
-        
-        for alpha in alphas:
-            # Move slightly towards the feasible point
+
+        warm_X = X_f.clone() # Fallback to X_f for elements that never become feasible
+
+        # Go backwards so that smaller valid alphas overwrite larger ones
+        for alpha in reversed(alphas):
             candidate = X_0 + alpha * (X_f - X_0)
-            if self.check_feasible(candidate).all():
-                return candidate.clone().requires_grad_(True)
-        
-        return X_f.clone().requires_grad_(True) # Fallback
+            feas_mask = self.check_feasible(candidate)
+            if feas_mask.ndim == 1:
+                feas_mask = feas_mask.unsqueeze(-1)
+
+            warm_X = torch.where(feas_mask, candidate, warm_X)
+
+        return warm_X.clone().requires_grad_(True)
 
     def calc_error(self, prev, cur):
         with torch.no_grad():

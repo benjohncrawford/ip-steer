@@ -46,16 +46,15 @@ def inverse_hvp(func, w, v):
     Takes in a twice continuously differentiable function and calculates the product 
     between the inverse hessian of that function at the point w and the vector v.
     """
-    # A wrapper for the HVP that only takes the vector 'y'
+    # 1. Compute the first gradient ONCE outside the loop
+    grad_w = torch.autograd.grad(func(w), w, create_graph=True)[0]
+
+    # 2. Only compute the grad of the grad inside the loop
     def hvp_wrapper(y):
-        # torch.autograd.functional.hvp returns a tuple: (loss, hvp)
-        # _, hvp_out = torch.autograd.functional.hvp(func, w, v=y)
-        # torch.autograd.functional.vhp is significantly faster and is equivalent
-        # if the function is continuously twice differential which it is in our case. 
-        _, hvp_out = torch.autograd.functional.vhp(func, w, v=y)
+        # retain_graph=True is needed because we reuse grad_w multiple times
+        hvp_out = torch.autograd.grad(grad_w, w, grad_outputs=y, retain_graph=True)[0]
         return hvp_out + 1e-4 * y
-    
-    # Solve H * y = v -> y = H^-1 * v
+
     return cg(hvp_wrapper, v)
         
         
