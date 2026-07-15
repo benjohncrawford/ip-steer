@@ -78,11 +78,11 @@ class BaseIPSteer(Steer):
         res -= barrier.sum(dim=-1, keepdim=True) 
         return res
 
-    def solve(self, X_0: Tensor, tol = 1e-5, max_outer_iter = 100, max_inner_iter = 10) -> Tensor:
+    def solve(self, X_0: Tensor, tol = 1e-6, max_outer_iter = 100, max_inner_iter = 100) -> Tensor:
         self.clf.to(X_0.device)
         X = self.get_warm_start(X_0).clone()
         eta = self.eta_0
-        max_eta = 10e9
+        max_eta = 10e6
         outer_prev_X = X.clone()
         inner_prev_X = X.clone() 
         
@@ -143,9 +143,10 @@ class BaseIPSteer(Steer):
                     inner_prev_X = X.clone()                    
                     inner_k += 1
                 outer_error = self.calc_error(outer_prev_X, X)
-                print("-------------------------------")
-                print(f"Iteration {outer_k}:\nerror: {outer_error}\nX:{X}\neta:{eta}\nobj: {y}\nh(a): {self.clf.forward(X)}\nfeasible: {self.check_feasible(X)}")
-                print("-------------------------------")
+                with torch.no_grad():
+                    print("-------------------------------")
+                    print(f"Iteration {outer_k}:\nerror: {outer_error}\nX:{X}\neta:{eta}\nobj: {y}\nh(a): {self.clf.forward(X)}\nfeasible: {self.check_feasible(X)}\n dist: {torch.sum(torch.square(X-X_0), dim=-1, keepdim=True)}")
+                    print("-------------------------------")
                 # Compute max change between previous and current x to see if we have converged to final solution
                 outer_prev_X = X.clone()
                 outer_k += 1
@@ -168,7 +169,8 @@ class BaseIPSteer(Steer):
         return X_f.clone().requires_grad_(True) # Fallback
 
     def calc_error(self, prev, cur):
-        return torch.norm(prev.detach() - cur.detach(), dim=-1).max().item()
+        with torch.no_grad():
+            return torch.norm(prev.detach() - cur.detach(), dim=-1).max().item()
 
     def check_feasible(self, X):
         self.clf.to(X.device)    
