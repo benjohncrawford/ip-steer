@@ -110,19 +110,26 @@ class BaseIPSteer(Steer):
                     
                     # Reverse line search to ensure step does not take us out of feasible range
                     with torch.no_grad():
+                        current_obj = self.obj(X, X_0, eta)
                         for i in range(max_line_search_iters):
                             X_proposed = X - alpha * step
+                            
+                            # 2. Check if the objective actually decreased
+                            proposed_obj = self.obj(X_proposed, X_0, eta)
 
                             # Check feasibility per-sample
                             feasible_mask = self.check_feasible(X_proposed)
+                            descent_mask = proposed_obj < current_obj
                             if feasible_mask.ndim == 1:
                                 feasible_mask = feasible_mask.unsqueeze(-1)
-
-                            if feasible_mask.all():
+                                
+                            valid_mask = feasible_mask & descent_mask
+                            if valid_mask.all():
                                 break
                             else:
-                                # We hit or crossed the boundary. Shrink step size ONLY for failures.
-                                alpha = torch.where(feasible_mask, alpha, alpha * tau)
+                                # We hit or crossed the boundary or didn't decrease objective function.
+                                # Shrink step size ONLY for failures.
+                                alpha = torch.where(valid_mask, alpha, alpha * tau)
                             # print(f"Line Search {i}")
                         
                         # if a sample is still infeasible after max line search 
