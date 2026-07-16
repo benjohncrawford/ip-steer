@@ -203,7 +203,7 @@ class BaseIPSteer(Steer):
         with torch.no_grad():
             # Returns True only if a sample is feasible across ALL classifiers
             probs = self.clf.forward(X)
-            print("probs: {probs}")
+            print(f"probs: {probs}")
             return (probs >= (0.5 + self.eps + 1e-4)).all(dim=-1)
 
     def find_init_feas(self, X_0: Tensor, max_iters: int = 10000, lr: float = 0.01) -> Tensor:
