@@ -62,9 +62,19 @@ class BaseIPSteer(Steer):
         return
     
     def steer(self, X: Tensor, T: float = 1.0) -> Tensor:
-        if T == 0. or self.check_feasible(X).all(): 
+        feasible_mask = self.check_feasible(X)
+        if T == 0. or feasible_mask.all(): 
             return X
-        return self.solve(X)
+        
+        # Only infeasible points need to be steered so only run method on subset
+        infeasible_mask = ~feasible_mask
+        need_steering = X[infeasible_mask]
+        steered = self.solve(need_steering)
+        
+        # overwrite only the infeasible rows
+        result = X.clone()
+        result[infeasible_mask] = steered
+        return result
     
     def obj(self, X, X_0, eta):
         diff = X-X_0
