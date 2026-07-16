@@ -69,6 +69,12 @@ class BaseIPSteer(Steer):
         # Only infeasible points need to be steered so only run method on subset
         infeasible_mask = ~feasible_mask
         need_steering = X[infeasible_mask]
+        print("----------------------------")
+        print(f"infeasible mask: {infeasible_mask}")
+        print(f"X: {X.size()}")
+        print(f"need_steering: {need_steering.size()}")
+        print("-----------------------------")
+        
         steered = self.solve(need_steering)
         
         # overwrite only the infeasible rows
