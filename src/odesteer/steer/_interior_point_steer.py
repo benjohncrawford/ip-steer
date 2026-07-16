@@ -148,14 +148,8 @@ class BaseIPSteer(Steer):
                                 alpha = torch.where(feasible_mask, alpha, alpha * tau)
                             # print(f"Line Search {i}")
                         
-                        # if a sample is still infeasible after max line search 
-                        # iterations, revert its step to 0 to prevent NaNs in the log barrier.
-                        final_feasible = self.check_feasible(X_proposed)
-                        if final_feasible.ndim == 1:
-                            final_feasible = final_feasible.unsqueeze(-1)
-                            
                         # Update X, keeping failed line-searches in their previous safe location
-                        safe_X_proposed = torch.where(final_feasible, X_proposed, X)
+                        safe_X_proposed = torch.where(feasible_mask, X_proposed, X)
                         X.copy_(safe_X_proposed)
                     
                     # Compute max change between previous and current x to see if we have converged to central path
@@ -203,8 +197,10 @@ class BaseIPSteer(Steer):
         with torch.no_grad():
             # Returns True only if a sample is feasible across ALL classifiers
             probs = self.clf.forward(X)
+            feasible = (probs >= (0.5 + self.eps + 1e-4)).all(dim=-1)
             print(f"probs: {probs}")
-            return (probs >= (0.5 + self.eps + 1e-4)).all(dim=-1)
+            print(f"feasible: {feasible}")
+            return feasible
 
     def find_init_feas(self, X_0: Tensor, max_iters: int = 10000, lr: float = 0.01) -> Tensor:
         """
