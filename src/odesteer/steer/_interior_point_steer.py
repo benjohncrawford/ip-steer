@@ -68,13 +68,7 @@ class BaseIPSteer(Steer):
         
         # Only infeasible points need to be steered so only run method on subset
         infeasible_mask = ~feasible_mask
-        need_steering = X[infeasible_mask]
-        print("----------------------------")
-        print(f"infeasible mask: {infeasible_mask}")
-        print(f"X: {X.size()}")
-        print(f"need_steering: {need_steering.size()}")
-        print("-----------------------------")
-        
+        need_steering = X[infeasible_mask]        
         steered = self.solve(need_steering)
         
         # overwrite only the infeasible rows
@@ -196,11 +190,7 @@ class BaseIPSteer(Steer):
         self.clf.to(X.device)    
         with torch.no_grad():
             # Returns True only if a sample is feasible across ALL classifiers
-            probs = self.clf.forward(X)
-            feasible = (probs >= (0.5 + self.eps + 1e-4)).all(dim=-1)
-            print(f"probs: {probs}")
-            print(f"feasible: {feasible}")
-            return feasible
+            return (self.clf.forward(X) >= (0.5 + self.eps + 1e-4)).all(dim=-1)
 
     def find_init_feas(self, X_0: Tensor, max_iters: int = 10000, lr: float = 0.01) -> Tensor:
         """
