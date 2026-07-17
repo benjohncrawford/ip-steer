@@ -37,7 +37,7 @@ class BaseIPSteer(Steer):
         self.delta = delta
 
         # Desired distance/probability into the safety region converted to logit
-        self.eps = torch.log(eps / (1.0 - eps))
+        self.eps = torch.log(torch.tensor(eps) / (1.0 - torch.tensor(eps)))
 
         self.alpha = alpha
                 
