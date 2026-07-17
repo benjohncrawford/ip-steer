@@ -123,7 +123,7 @@ class BaseIPSteer(Steer):
                     
                     # Reverse line search to ensure step does not take us out of feasible range
                     with torch.no_grad():
-                        for _ in range(max_line_search_iters):
+                        for i in range(max_line_search_iters):
                             X_proposed = X - alpha * step
                             
                             # Check feasibility per-sample
@@ -138,22 +138,29 @@ class BaseIPSteer(Steer):
                                 # We hit or crossed the boundary
                                 # Shrink step size ONLY for failures.
                                 alpha = torch.where(feasible_mask, alpha, alpha * tau)
+                            if i == max_line_search_iters:
+                                print("Max Line Search Iterations")
                         
                         # Update X, keeping failed line-searches in their previous safe location
                         safe_X_proposed = torch.where(feasible_mask, X_proposed, X)
                         X.copy_(safe_X_proposed)
+
                     
                     # Compute max change between previous and current x to see if we have converged to central path
                     inner_error = self.calc_error(inner_prev_X, X)
    
                     inner_prev_X = X.clone()                    
                     inner_k += 1
+                    if inner_k == max_inner_iter:
+                        print("Max Inner Iterations")
                     
                 # Compute max change between previous and current x to see if we have converged to final solution
                 outer_error = self.calc_error(outer_prev_X, X)
                 outer_prev_X = X.clone()
                 outer_k += 1
                 eta = min(eta * self.delta, max_eta)
+                if outer_k == max_outer_iter:
+                    print("Max Outer Iterations")
         return X.detach()
 
     def get_warm_start(self, X_0):
