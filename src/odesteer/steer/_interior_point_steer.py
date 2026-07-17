@@ -36,8 +36,8 @@ class BaseIPSteer(Steer):
         # Factor by which to multiply eta at each step MUST BE GREATER THAN ONE
         self.delta = delta
 
-        # Desired distance/probability into the safety region 
-        self.eps = torch.special.logit(eps)
+        # Desired distance/probability into the safety region converted to logit
+        self.eps = torch.log(eps / (1.0 - eps))
 
         self.alpha = alpha
                 
