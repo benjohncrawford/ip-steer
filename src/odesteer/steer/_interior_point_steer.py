@@ -18,7 +18,7 @@ from ..utils.ihvp import inverse_hvp
 class BaseIPSteer(Steer):
     def __init__(
         self, 
-        eta_0 = 10e-6,
+        eta_0 = 1e-3,
         delta = 2,
         eps = 0.55,
         alpha = 0.01,
@@ -88,7 +88,7 @@ class BaseIPSteer(Steer):
         res -= barrier.sum(dim=-1, keepdim=True) 
         return res
 
-    def solve(self, X_0: Tensor, tol = 1e-4, max_outer_iter = 20, max_inner_iter = 20) -> Tensor:
+    def solve(self, X_0: Tensor, tol = 1e-3, max_outer_iter = 20, max_inner_iter = 20) -> Tensor:
         self.clf.to(X_0.device)
         X = self.get_warm_start(X_0).clone()
         eta = self.eta_0
@@ -101,7 +101,7 @@ class BaseIPSteer(Steer):
         max_line_search_iters = 8
         
         # How much to shrink the step size on failure (e.g., cut in half)
-        tau = 0.5   
+        tau = 0.7  
         with torch.enable_grad():
             # Outer loop controls increasing eta
             while outer_k <= max_outer_iter and outer_error >= tol:
@@ -138,8 +138,6 @@ class BaseIPSteer(Steer):
                                 # We hit or crossed the boundary
                                 # Shrink step size ONLY for failures.
                                 alpha = torch.where(feasible_mask, alpha, alpha * tau)
-                            if i == max_line_search_iters:
-                                print("Max Line Search Iterations")
                         
                         # Update X, keeping failed line-searches in their previous safe location
                         safe_X_proposed = torch.where(feasible_mask, X_proposed, X)
@@ -151,16 +149,13 @@ class BaseIPSteer(Steer):
    
                     inner_prev_X = X.clone()                    
                     inner_k += 1
-                    if inner_k == max_inner_iter:
-                        print("Max Inner Iterations")
-                    
+ 
                 # Compute max change between previous and current x to see if we have converged to final solution
                 outer_error = self.calc_error(outer_prev_X, X)
                 outer_prev_X = X.clone()
                 outer_k += 1
                 eta = min(eta * self.delta, max_eta)
-                if outer_k == max_outer_iter:
-                    print("Max Outer Iterations")
+
         return X.detach()
 
     def get_warm_start(self, X_0):
