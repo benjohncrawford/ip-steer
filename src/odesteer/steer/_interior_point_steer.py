@@ -158,7 +158,7 @@ class BaseIPSteer(Steer):
 
     def get_warm_start(self, X_0):
         X_f = self.X_feas.to(X_0.device).unsqueeze(0).expand_as(X_0)
-        alphas = torch.linspace(0.01, 1.0, steps=50, device=X_0.device).view(-1, 1)
+        alphas = torch.linspace(0.01, 1.0, steps=20, device=X_0.device).view(-1, 1)
         
         # Fallback to X_f for elements that never become feasible
         warm_X = X_f.clone() 
