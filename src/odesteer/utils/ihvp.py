@@ -41,13 +41,14 @@ def cg(H_mvp, b, max_iters = 100, tol = 1e-6):
         
     return w
 
-def inverse_hvp(func, w, v):
+def inverse_hvp(func, w, v, grad_w=None):
     """
     Takes in a twice continuously differentiable function and calculates the product 
     between the inverse hessian of that function at the point w and the vector v.
     """
-    # 1. Compute the first gradient ONCE outside the loop
-    grad_w = torch.autograd.grad(func(w), w, create_graph=True)[0]
+    if grad_w == None:
+        # 1. Compute the first gradient ONCE outside the loop
+        grad_w = torch.autograd.grad(func(w), w, create_graph=True)[0]
 
     # 2. Only compute the grad of the grad inside the loop
     def hvp_wrapper(y):
