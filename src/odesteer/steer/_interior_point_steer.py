@@ -23,6 +23,8 @@ class BaseIPSteer(Steer):
         delta = 2,
         eps = 0.55,
         alpha = 0.01,
+        max_inner_iter = 20,
+        max_outer_iter = 20,
         **kwargs
     ):
         super().__init__()
@@ -41,6 +43,10 @@ class BaseIPSteer(Steer):
         self.eps = torch.log(torch.tensor(eps) / (1.0 - torch.tensor(eps)))
 
         self.alpha = alpha
+        
+        # max iterations for solve loop
+        self.max_outer_iter = max_outer_iter
+        self.max_inner_iter = max_inner_iter
         
                 
     def fit(self, pos_Xs, neg_X_or_labels) -> 'BaseIPSteer':
@@ -91,7 +97,7 @@ class BaseIPSteer(Steer):
         res -= barrier.sum(dim=-1, keepdim=True) 
         return res
 
-    def solve(self, X_0: Tensor, tol = 1e-3, max_outer_iter = 20, max_inner_iter = 20) -> Tensor:
+    def solve(self, X_0: Tensor, tol = 1e-4) -> Tensor:
         self.clf.to(X_0.device)
         X = self.get_warm_start(X_0).clone()
         eta = self.eta_0
@@ -107,12 +113,12 @@ class BaseIPSteer(Steer):
         tau = 0.7  
         with torch.enable_grad():
             # Outer loop controls increasing eta
-            while outer_k <= max_outer_iter and outer_error >= tol:
+            while outer_k <= self.max_outer_iter and outer_error >= tol:
                 
                 # inner loop ensures we converge to the central path each time
                 inner_k = 0
                 inner_error = 10e6
-                while inner_error >= tol and inner_k <= max_inner_iter:
+                while inner_error >= tol and inner_k <= self.max_inner_iter:
                     X = X.detach().requires_grad_(True)
                     
                     # Calc step summing so we can do batches
