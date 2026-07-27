@@ -13,6 +13,7 @@ from ._base_steer import Steer
 from ..utils.kernels import KernelClassifier, RFFClassifier
 from ..utils.kernels import PolyClassifier, MultiPolyClassifiers
 from ..utils.ihvp import inverse_hvp
+from ..utils.lbfgs import LBFGS
 
 
 class BaseIPSteer(Steer):
@@ -40,6 +41,7 @@ class BaseIPSteer(Steer):
         self.eps = torch.log(torch.tensor(eps) / (1.0 - torch.tensor(eps)))
 
         self.alpha = alpha
+        
                 
     def fit(self, pos_Xs, neg_X_or_labels) -> 'BaseIPSteer':
         if torch.is_tensor(pos_Xs):
@@ -69,6 +71,7 @@ class BaseIPSteer(Steer):
         # Only infeasible points need to be steered so only run method on subset
         infeasible_mask = ~feasible_mask
         need_steering = X[infeasible_mask]        
+        self.solver = LBFGS(m=20)
         steered = self.solve(need_steering)
         
         # overwrite only the infeasible rows
@@ -116,8 +119,8 @@ class BaseIPSteer(Steer):
                     obj_wrapper = lambda x: self.obj(x, X_0, eta).sum()
                     y = obj_wrapper(X)
                     grad_y = torch.autograd.grad(y, X, create_graph=True)[0]
-                    step = inverse_hvp(obj_wrapper, X, grad_y, grad_w = grad_y)
-                    
+                    # step = inverse_hvp(obj_wrapper, X, grad_y, grad_w = grad_y)
+                    step = self.solver.next(X, grad_y)
                     # Start full Newton step, batched
                     alpha = torch.ones((X.shape[0], 1), device=X.device) 
                     
@@ -160,7 +163,7 @@ class BaseIPSteer(Steer):
 
     def get_warm_start(self, X_0):
         X_f = self.X_feas.to(X_0.device).unsqueeze(0).expand_as(X_0)
-        alphas = torch.linspace(0.01, 1.0, steps=20, device=X_0.device).view(-1, 1)
+        alphas = torch.linspace(0.01, 1.0, steps=10, device=X_0.device).view(-1, 1)
         
         # Fallback to X_f for elements that never become feasible
         warm_X = X_f.clone() 
