@@ -99,11 +99,11 @@ class BaseIPSteer(Steer):
 
     def solve(self, X_0: Tensor, tol = 1e-4) -> Tensor:
         self.clf.to(X_0.device)
-        X = self.get_warm_start(X_0).clone()
+        X = self.get_warm_start(X_0).detach().clone()
         eta = self.eta_0
         max_eta = 10e6
-        outer_prev_X = X.clone()
-        inner_prev_X = X.clone() 
+        outer_prev_X = X.detach().clone()
+        inner_prev_X = X.detach().clone() 
         
         outer_k = 0
         outer_error = 10e6
@@ -122,8 +122,8 @@ class BaseIPSteer(Steer):
                     X = X.detach().requires_grad_(True)
                     
                     # Calc step summing so we can do batches
-                    obj_wrapper = lambda x: self.obj(x, X_0, eta).sum()
-                    y = obj_wrapper(X)
+                    # obj_wrapper = lambda x: self.obj(x, X_0, eta).sum()
+                    y = self.obj(X, X_0, eta).sum()
                     grad_y = torch.autograd.grad(y, X, create_graph=False)[0]
                     # step = inverse_hvp(obj_wrapper, X, grad_y, grad_w = grad_y)
                     step = self.solver.next(X, grad_y)
@@ -150,25 +150,25 @@ class BaseIPSteer(Steer):
                         
                         # Update X, keeping failed line-searches in their previous safe location
                         safe_X_proposed = torch.where(feasible_mask, X_proposed, X)
-                        X.copy_(safe_X_proposed)
+                        X = X.copy_(safe_X_proposed)
 
                     
                     # Compute max change between previous and current x to see if we have converged to central path
                     inner_error = self.calc_error(inner_prev_X, X)
    
-                    inner_prev_X = X.clone()                    
+                    inner_prev_X = X.detach().clone()                    
                     inner_k += 1
-                    # if inner_k % 10 == 0:
-                    #     print("-------------------------------")
-                    #     print(f"Inner Iteration {inner_k}:\nerror: {inner_error}\nX:{X}\ninner_prev_X:{inner_prev_X}\n obj: {y}")
-                    #     print("-------------------------------")
-                # with torch.no_grad():
-                #     print("-------------------------------")
-                #     print(f"Iteration {outer_k}:\nerror: {outer_error}\nX:{X}\neta:{eta}\nobj: {y}\nh(a): {self.clf.forward(X)}\n dist: {torch.sum(torch.square(X-X_0), dim=-1, keepdim=True)}")
-                #     print("-------------------------------")
+                    if inner_k % 10 == 0:
+                        print("-------------------------------")
+                        print(f"Inner Iteration {inner_k}:\nerror: {inner_error}\nX:{X}\ninner_prev_X:{inner_prev_X}\n obj: {y}")
+                        print("-------------------------------")
+                with torch.no_grad():
+                    print("-------------------------------")
+                    print(f"Iteration {outer_k}:\nerror: {outer_error}\nX:{X}\neta:{eta}\nobj: {y}\nh(a): {self.clf.forward(X)}\n dist: {torch.sum(torch.square(X-X_0), dim=-1, keepdim=True)}")
+                    print("-------------------------------")
                 # Compute max change between previous and current x to see if we have converged to final solution
                 outer_error = self.calc_error(outer_prev_X, X)
-                outer_prev_X = X.clone()
+                outer_prev_X = X.detach().clone()
                 outer_k += 1
                 eta = min(eta * self.delta, max_eta)
 
