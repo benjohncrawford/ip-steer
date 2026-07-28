@@ -158,7 +158,15 @@ class BaseIPSteer(Steer):
    
                     inner_prev_X = X.clone()                    
                     inner_k += 1
- 
+                    if inner_k % 10 == 0:
+                        print("-------------------------------")
+                        print(f"Inner Iteration {inner_k}:\nerror: {inner_error}\nX:{X}\ninner_prev_X:{inner_prev_X}\n obj: {y}")
+                        print("-------------------------------")
+                outer_error = self.calc_error(outer_prev_X, X)
+                with torch.no_grad():
+                    print("-------------------------------")
+                    print(f"Iteration {outer_k}:\nerror: {outer_error}\nX:{X}\neta:{eta}\nobj: {y}\nh(a): {self.clf.forward(X)}\n dist: {torch.sum(torch.square(X-X_0), dim=-1, keepdim=True)}")
+                    print("-------------------------------")
                 # Compute max change between previous and current x to see if we have converged to final solution
                 outer_error = self.calc_error(outer_prev_X, X)
                 outer_prev_X = X.clone()
