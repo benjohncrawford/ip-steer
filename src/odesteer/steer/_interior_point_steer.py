@@ -157,20 +157,20 @@ class BaseIPSteer(Steer):
    
                     inner_prev_X = X.detach().clone()                    
                     inner_k += 1
-                    if inner_k % 10 == 0:
-                        print("-------------------------------")
-                        print(f"Inner Iteration {inner_k}:\nerror: {inner_error}\nX:{X}\ninner_prev_X:{inner_prev_X}\n obj: {y}")
-                        print("-------------------------------")
+                    # if inner_k % 10 == 0:
+                    #     print("-------------------------------")
+                    #     print(f"Inner Iteration {inner_k}:\nerror: {inner_error}\nX:{X}\ninner_prev_X:{inner_prev_X}\n obj: {y}")
+                    #     print("-------------------------------")
                 # Compute max change between previous and current x to see if we have converged to final solution
                 outer_error = self.calc_error(outer_prev_X, X)
                 outer_prev_X = X.detach().clone()
                 outer_k += 1
                 eta = min(eta * self.delta, max_eta)
-                with torch.no_grad():
-                    dist = torch.sum(torch.square(X-X_0), dim=-1, keepdim=True)
-                    print("-------------------------------")
-                    print(f"Iteration {outer_k}:\nerror: {outer_error}\nX:{X}\neta:{eta}\nobj: {y}\nh(a): {self.clf.forward(X)}\n dist: {dist} dist_sum: {dist.sum()}")
-                    print("-------------------------------")
+                # with torch.no_grad():
+                #     dist = torch.sum(torch.square(X-X_0), dim=-1, keepdim=True)
+                #     print("-------------------------------")
+                #     print(f"Iteration {outer_k}:\nerror: {outer_error}\nX:{X}\neta:{eta}\nobj: {y}\nh(a): {self.clf.forward(X)}\n dist: {dist} dist_sum: {dist.sum()}")
+                #     print("-------------------------------")
 
         return X.detach()
 
