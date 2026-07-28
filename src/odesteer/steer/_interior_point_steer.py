@@ -77,7 +77,7 @@ class BaseIPSteer(Steer):
         # Only infeasible points need to be steered so only run method on subset
         infeasible_mask = ~feasible_mask
         need_steering = X[infeasible_mask]        
-        self.solver = LBFGS(m=20)
+        self.solver = LBFGS(m=25)
         steered = self.solve(need_steering)
         
         # overwrite only the infeasible rows
@@ -152,7 +152,6 @@ class BaseIPSteer(Steer):
                         safe_X_proposed = torch.where(feasible_mask, X_proposed, X)
                         X = X.copy_(safe_X_proposed)
 
-                    
                     # Compute max change between previous and current x to see if we have converged to central path
                     inner_error = self.calc_error(inner_prev_X, X)
    
@@ -162,15 +161,16 @@ class BaseIPSteer(Steer):
                         print("-------------------------------")
                         print(f"Inner Iteration {inner_k}:\nerror: {inner_error}\nX:{X}\ninner_prev_X:{inner_prev_X}\n obj: {y}")
                         print("-------------------------------")
-                with torch.no_grad():
-                    print("-------------------------------")
-                    print(f"Iteration {outer_k}:\nerror: {outer_error}\nX:{X}\neta:{eta}\nobj: {y}\nh(a): {self.clf.forward(X)}\n dist: {torch.sum(torch.square(X-X_0), dim=-1, keepdim=True)}")
-                    print("-------------------------------")
                 # Compute max change between previous and current x to see if we have converged to final solution
                 outer_error = self.calc_error(outer_prev_X, X)
                 outer_prev_X = X.detach().clone()
                 outer_k += 1
                 eta = min(eta * self.delta, max_eta)
+                with torch.no_grad():
+                    dist = torch.sum(torch.square(X-X_0), dim=-1, keepdim=True)
+                    print("-------------------------------")
+                    print(f"Iteration {outer_k}:\nerror: {outer_error}\nX:{X}\neta:{eta}\nobj: {y}\nh(a): {self.clf.forward(X)}\n dist: {dist} dist_sum: {dist.sum()}")
+                    print("-------------------------------")
 
         return X.detach()
 
