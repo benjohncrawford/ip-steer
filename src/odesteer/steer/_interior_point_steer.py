@@ -133,7 +133,7 @@ class BaseIPSteer(Steer):
                     # Reverse line search to ensure step does not take us out of feasible range
                     with torch.no_grad():
                         for i in range(max_line_search_iters):
-                            X_proposed = X - alpha * step
+                            X_proposed = X + alpha * step
                             
                             # Check feasibility per-sample
                             feasible_mask = self.check_feasible(X_proposed)
