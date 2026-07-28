@@ -15,6 +15,7 @@ class LBFGS():
         self.prev_x = None
         self.prev_grad = None
         
+    @torch.no_grad()    
     def next(self, x, grad):
         batch_size = x.shape[0]
         q = grad.clone()

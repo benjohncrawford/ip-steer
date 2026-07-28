@@ -192,15 +192,15 @@ class BaseIPSteer(Steer):
 
         return warm_X.clone().requires_grad_(True)
 
+    @torch.no_grad()
     def calc_error(self, prev, cur):
-        with torch.no_grad():
-            return torch.norm(prev.detach() - cur.detach(), dim=-1).max().item()
-
+        return torch.norm(prev.detach() - cur.detach(), dim=-1).max().item()
+    
+    @torch.no_grad()
     def check_feasible(self, X):
         self.clf.to(X.device)    
-        with torch.no_grad():
-            # Returns True only if a sample is feasible across ALL classifiers
-            return (self.clf.predict_raw_prob(X) >= self.eps).all(dim=-1)
+        # Returns True only if a sample is feasible across ALL classifiers
+        return (self.clf.predict_raw_prob(X) >= self.eps).all(dim=-1)
 
     def find_init_feas(self, X_0: Tensor, max_iters: int = 10000, lr: float = 0.01) -> Tensor:
         """
