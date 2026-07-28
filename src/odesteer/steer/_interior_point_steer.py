@@ -114,7 +114,7 @@ class BaseIPSteer(Steer):
         with torch.enable_grad():
             # Outer loop controls increasing eta
             while outer_k <= self.max_outer_iter and outer_error >= tol:
-                
+                self.solver.reset()
                 # inner loop ensures we converge to the central path each time
                 inner_k = 0
                 inner_error = 10e6

@@ -81,3 +81,13 @@ class LBFGS():
         self.prev_grad = grad.clone()
         
         return -z
+    
+    @torch.no_grad()
+    def reset(self):
+        self.steps = []
+        self.gds = []
+        self.rhos = []
+        
+        self.gamma = None 
+        self.prev_x = None
+        self.prev_grad = None
