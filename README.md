@@ -1,9 +1,3 @@
----
-title: "My Research Paper"
-bibliography: references.bib
-link-citations: true
----
-
 # IPSteer: A Interior Point Based LLM Steering Method
 In this repo we implement a novel method of steering LLMs that frames the problem of activation steering as a constrained optimization problem and then attempt to solve that optimization problem using the interior point method. This results in a method that is guaranteed to provide activations in a known safety region that remain as close to possible as the originals, which preserves both the original fluency and high level semantic meaning of the activation. 
 
@@ -24,7 +18,7 @@ Users of LLMs expect outputs that are generated quickly but are
 simultaneously helpful, truthful, intelligible, and friendly. However,
 training these models can be extremely expensive and therefore it is
 desirable to be able to improve their outputs without going through an
-expensive retraining process [^1].
+expensive retraining process [1](1).
 To that end, steering has been a highly researched method of achieving
 this goal [^7]. Steering is the process of in some way
 modifying the activations of the model at generation time in order to
@@ -103,17 +97,26 @@ solving this augmented problem for increasing values of $\eta$.
 Specifically, the algorithm is as follows: We begin from a feasible
 point $a_{feasible}$ and $\eta_0 > 0$. For $t = 0, ..., T$ we:
 
-1.  Take one newton step: $$\begin{align*}
+1.  Take one newton step: 
+$$
+\begin{align*}
         a_{t+1} = a_t + n_{\eta_t}(a_t)
-    \end{align*}$$ where $n_{\eta_t}(a_t)$ is the Newton step:
-    $$\begin{align*}
+\end{align*}
+$$ 
+where $n_{\eta_t}(a_t)$ is the Newton step:
+$$
+\begin{align*}
         n_{\eta}(a) = -(\nabla^2f_\eta(a))^{-1}\nabla f_\eta(a)
-    \end{align*}$$
+\end{align*}
+$$
 
-2.  Update $\eta$: $$\begin{align*}
-        \eta_{t+1} = \eta_t\cdot \delta
-    \end{align*}$$ where $\delta > 1$ is a predetermined constant step
-    size.
+2.  Update $\eta$: 
+$$
+\begin{align*}
+    \eta_{t+1} = \eta_t\cdot \delta
+\end{align*}
+$$ 
+where $\delta > 1$ is a predetermined constant step size.
 
 We can frame the problem of LLM steering as a constrained optimization
 problem by defining the barrier function described in the ODESteer
@@ -138,9 +141,11 @@ further that if we don't edit the response by much that it will remain
 on-topic. Therefore, we propose the following
 objective function:
 
-$$\begin{aligned}
+$$
+\begin{aligned}
 \min_{a \in \mathbb{R}^d} \quad & \frac{1}{2}||a - a_0||_2^2 \\
-\end{aligned}$$
+\end{aligned}
+$$
 
 Where $a_0$ is defined to be the activation before steering. Using this
 objective function will ensure we find the point that satisfies the
@@ -151,14 +156,18 @@ possible. Therefore, changing the meaning by as little as possible.
 
 We define the constraint set based on the barrier function defined in
 the ODESteer paper, namely it is the log-density ratio between positive
-and negative activations. $$\begin{align*}
+and negative activations. 
+$$\begin{align*}
     h(a) &= w'^{\top}\phi(a) + b' + \log\left(\frac{N_-}{N_+}\right)
-\end{align*}$$ where $\phi(a): \mathbb{R}^d \rightarrow \mathbb{R}^D$ is
-a nonlinear feature map and $w'$ and $b'$ represent the learned weights
+\end{align*}
+$$ 
+where $\phi(a): \mathbb{R}^d \rightarrow \mathbb{R}^D$ is a nonlinear feature map and $w'$ and $b'$ represent the learned weights
 and biases from the logistic regression used to estimate the density
-ratio. Our constraint then is as follows: $$\begin{align*}
+ratio. Our constraint then is as follows: 
+$$\begin{align*}
     h(a) \geq \epsilon
-\end{align*}$$ where $\epsilon$ is the desired distance from the
+\end{align*}$$ 
+where $\epsilon$ is the desired distance from the
 boundary of the barrier function, which can be thought of as the
 probability above 0.5 that the activation is positive. Our perturbed
 optimization problem then becomes for each step $\eta$:
@@ -168,13 +177,21 @@ $$\begin{aligned}
 \end{aligned}$$
 
 
-The gradient of this function is: $$\begin{align*}
+The gradient of this function is: 
+$$
+\begin{align*}
     \nabla f_\eta(a) = \eta (a - a_0) - \frac{1}{h(a)-\epsilon} J_\phi (a)^\top w'
-\end{align*}$$ where $J_\phi (a)$ is the Jacobian of $\phi$ with respect
-to $a$. The Hessian of this function is: $$\begin{align*}
+\end{align*}
+$$
+ where $J_\phi (a)$ is the Jacobian of $\phi$ with respect
+to $a$. The Hessian of this function is: 
+$$
+\begin{align*}
     \nabla^2 f_\eta (a) &=2\eta + \frac{1}{(h(a)-\epsilon)^2}\nabla h(a)\nabla h(a)^\top - \frac{1}{h(a) -\epsilon}\nabla^2 h(a)\\
     &=2\eta I + \frac{1}{(h(a)-\epsilon)^2}(J_\phi (a)^\top w')(w'^\top J_\phi (a)) - \frac{1}{h(a) -\epsilon}\nabla^2 h(a)
-\end{align*}$$ where $I$ is the identity matrix and if we take $\phi$ to
+\end{align*}
+$$ 
+where $I$ is the identity matrix and if we take $\phi$ to
 be a quadratic polynomial count sketch as is done in ODESteer then
 $\nabla^2 h(a)$ the hessian of $\phi(a)$ is constant.
 
@@ -194,10 +211,14 @@ without calculating the full hessian. We can do this using the Conjugate
 Gradient method, provided we have access to a function that can
 calculate the matrix vector product between the hessian of our function
 and a given vector. We simply set up the system of equations and use CG
-to approximate the result: $$\begin{align*}
+to approximate the result: 
+$$
+\begin{align*}
     \nabla^2 f_\eta (a)n_\eta(a) &= \nabla f_\eta (a)\\
     n_\eta(a) &= \left(\nabla^2 f_\eta (a)\right)^{-1} \nabla f_\eta (a)
-\end{align*}$$ This works in part because the CG algorithm does not
+\end{align*}
+$$ 
+This works in part because the CG algorithm does not
 require the full matrix it only needs to query it using matrix vector
 products. This can be implemented efficiently in PyTorch.
 
