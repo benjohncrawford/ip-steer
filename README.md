@@ -81,41 +81,58 @@ modified version of the original objective function that includes a
 barrier term representing the constraint set [^5]. For an
 optimization problem such as:
 
-$$\begin{aligned}
+$$
+\begin{aligned}
 \min_{a \in \mathbb{R}^d} \quad & f(a) \\
 \text{subject to} \quad& h(a) \le 0
-\end{aligned}$$
-We define the log barrier function to be: $$\begin{align*}
-    F(a) = \log(h(a))
-\end{align*}$$ The augmented problem is then:
+\end{aligned}
+$$
 
-$$\begin{aligned}
+We define the log barrier function to be: 
+
+$$
+\begin{align*}
+    F(a) = \log(h(a))
+\end{align*}
+$$ 
+
+The augmented problem is then:
+
+$$
+\begin{aligned}
 \min_{a \in \mathbb{R}^d} \quad & f_\eta(a) \\
-\end{aligned}$$
+\end{aligned}
+$$
+
 where $f_\eta = \eta f(a) - F(a)$ The interior point method works by
 solving this augmented problem for increasing values of $\eta$.
 Specifically, the algorithm is as follows: We begin from a feasible
 point $a_{feasible}$ and $\eta_0 > 0$. For $t = 0, ..., T$ we:
 
-1.  Take one newton step: 
+1.  Take one newton step:
+   
 $$
 \begin{align*}
         a_{t+1} = a_t + n_{\eta_t}(a_t)
 \end{align*}
 $$ 
+
 where $n_{\eta_t}(a_t)$ is the Newton step:
+
 $$
 \begin{align*}
         n_{\eta}(a) = -(\nabla^2f_\eta(a))^{-1}\nabla f_\eta(a)
 \end{align*}
 $$
 
-2.  Update $\eta$: 
+2.  Update $\eta$:
+   
 $$
 \begin{align*}
     \eta_{t+1} = \eta_t\cdot \delta
 \end{align*}
 $$ 
+
 where $\delta > 1$ is a predetermined constant step size.
 
 We can frame the problem of LLM steering as a constrained optimization
@@ -157,24 +174,33 @@ possible. Therefore, changing the meaning by as little as possible.
 We define the constraint set based on the barrier function defined in
 the ODESteer paper, namely it is the log-density ratio between positive
 and negative activations. 
-$$\begin{align*}
+
+$$
+\begin{align*}
     h(a) &= w'^{\top}\phi(a) + b' + \log\left(\frac{N_-}{N_+}\right)
 \end{align*}
 $$ 
+
 where $\phi(a): \mathbb{R}^d \rightarrow \mathbb{R}^D$ is a nonlinear feature map and $w'$ and $b'$ represent the learned weights
 and biases from the logistic regression used to estimate the density
 ratio. Our constraint then is as follows: 
-$$\begin{align*}
+
+$$
+\begin{align*}
     h(a) \geq \epsilon
-\end{align*}$$ 
+\end{align*}
+$$ 
+
 where $\epsilon$ is the desired distance from the
 boundary of the barrier function, which can be thought of as the
 probability above 0.5 that the activation is positive. Our perturbed
 optimization problem then becomes for each step $\eta$:
 
-$$\begin{aligned}
+$$
+\begin{aligned}
 \min_{a \in \mathbb{R}^d} \quad & \frac{\eta}{2}||a - a_0||_2^2 - \log\left( h(a) - \epsilon\right)\\
-\end{aligned}$$
+\end{aligned}
+$$
 
 
 The gradient of this function is: 
@@ -183,14 +209,17 @@ $$
     \nabla f_\eta(a) = \eta (a - a_0) - \frac{1}{h(a)-\epsilon} J_\phi (a)^\top w'
 \end{align*}
 $$
- where $J_\phi (a)$ is the Jacobian of $\phi$ with respect
+
+where $J_\phi (a)$ is the Jacobian of $\phi$ with respect
 to $a$. The Hessian of this function is: 
+
 $$
 \begin{align*}
     \nabla^2 f_\eta (a) &=2\eta + \frac{1}{(h(a)-\epsilon)^2}\nabla h(a)\nabla h(a)^\top - \frac{1}{h(a) -\epsilon}\nabla^2 h(a)\\
     &=2\eta I + \frac{1}{(h(a)-\epsilon)^2}(J_\phi (a)^\top w')(w'^\top J_\phi (a)) - \frac{1}{h(a) -\epsilon}\nabla^2 h(a)
 \end{align*}
 $$ 
+
 where $I$ is the identity matrix and if we take $\phi$ to
 be a quadratic polynomial count sketch as is done in ODESteer then
 $\nabla^2 h(a)$ the hessian of $\phi(a)$ is constant.
@@ -212,12 +241,14 @@ Gradient method, provided we have access to a function that can
 calculate the matrix vector product between the hessian of our function
 and a given vector. We simply set up the system of equations and use CG
 to approximate the result: 
+
 $$
 \begin{align*}
     \nabla^2 f_\eta (a)n_\eta(a) &= \nabla f_\eta (a)\\
     n_\eta(a) &= \left(\nabla^2 f_\eta (a)\right)^{-1} \nabla f_\eta (a)
 \end{align*}
 $$ 
+
 This works in part because the CG algorithm does not
 require the full matrix it only needs to query it using matrix vector
 products. This can be implemented efficiently in PyTorch.
