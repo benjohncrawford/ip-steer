@@ -8,7 +8,7 @@ import pandas as pd
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
-from odesteer.utils import get_project_dir
+from ipsteer.utils import get_project_dir
 
 
 ultrafeedback_df_cols = [

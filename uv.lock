@@ -2739,7 +2739,7 @@ wheels = [
 ]
 
 [[package]]
-name = "odesteer"
+name = "ipsteer"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

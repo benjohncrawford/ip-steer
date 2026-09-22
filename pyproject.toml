@@ -1,5 +1,5 @@
 [project]
-name = "odesteer"
+name = "ipsteer"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -42,7 +42,7 @@ dependencies = [
 ]
 
 [project.scripts]
-odesteer = "odesteer:main"
+ipsteer = "ipsteer:main"
 
 [build-system]
 requires = ["hatchling"]

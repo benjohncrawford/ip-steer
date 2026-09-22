@@ -1,7 +1,7 @@
 import pandas as pd
 
 
-from odesteer.utils import get_project_dir
+from ipsteer.utils import get_project_dir
 from openai import OpenAI
 
 data_dir = get_project_dir() / 'data' / 'toxicity'

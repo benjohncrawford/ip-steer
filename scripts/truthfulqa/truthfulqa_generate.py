@@ -8,10 +8,10 @@ import torch
 from transformers import GenerationConfig
 from lightning import seed_everything
 
-from odesteer.lm import HuggingFaceLM, batch_chat
-from odesteer.utils import get_project_dir
-from odesteer.utils.data import load_tqa_gen_data
-from odesteer.utils.data import load_tqa_gen_questions
+from ipsteer.lm import HuggingFaceLM, batch_chat
+from ipsteer.utils import get_project_dir
+from ipsteer.utils.data import load_tqa_gen_data
+from ipsteer.utils.data import load_tqa_gen_questions
 
 
 truthfulqa_system_prompt = (
