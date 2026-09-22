@@ -29,8 +29,6 @@ for category in categories:
 
 save_after = 1000
 for index, row in tqdm(df.iterrows(), total=df.shape[0]):
-    if index <= 6000:
-        continue
     response = moderation_with_backoff(
         model="omni-moderation-latest",
         input=row.text,
