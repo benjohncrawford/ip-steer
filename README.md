@@ -18,9 +18,9 @@ Users of LLMs expect outputs that are generated quickly but are
 simultaneously helpful, truthful, intelligible, and friendly. However,
 training these models can be extremely expensive and therefore it is
 desirable to be able to improve their outputs without going through an
-expensive retraining process [1](1).
+expensive retraining process [[1]](#1).
 To that end, steering has been a highly researched method of achieving
-this goal [^7]. Steering is the process of in some way
+this goal [[7]](#7). Steering is the process of in some way
 modifying the activations of the model at generation time in order to
 improve the output. As the goal is to generate responses as quickly as
 possible but also ensure that they embody the qualities listed above we
@@ -44,14 +44,14 @@ exactly to edit these activations.
 
 Previous work in this field has primarily focused on single step
 activation steering in which a precalculated vector is added to the
-activations at a specific layer[^2]. The methods of
+activations at a specific layer[[2]](#2). The methods of
 calculating these vectors vary, but in general they require a dataset of
 contrastive pairs, one being an example of a positive generation
 matching the expected output and the other being a negative output that
 should be avoided. One popular and illustrative method is Contrastive
 Activation Addition (CAA), which works by learning a steering vector by
 calculating the mean difference between the positive and negative
-activations [^3]. One major
+activations [[3]](#3). One major
 problem with using a constant steering vector is it does not take into
 account complex patterns in the activation space. Another potential
 problem with one step steering is that if steering toward one positive
@@ -61,7 +61,7 @@ associated with a different desired trait.
 One inspirational paper that shifts the paradigm of single step steering
 is ODESteer by Zhao et. al which proposed thinking of steering methods
 as solutions to ordinary differential equations
-[^6]. They elaborate that by
+[[6]](#6). They elaborate that by
 constructing a barrier function in specific ways this view can
 encapsulate basically all previous steering methods. They go on to
 propose a specific barrier function which is based on modeling the
@@ -78,7 +78,7 @@ The interior point method is a second order optimization method for
 constrained optimization problems. It works by first starting from a
 known feasible point and repeatedly applying Newton's method to a
 modified version of the original objective function that includes a
-barrier term representing the constraint set [^5]. For an
+barrier term representing the constraint set [[5]](#5). For an
 optimization problem such as:
 
 $$
@@ -318,7 +318,7 @@ For initial testing and experimenting it is desirable to remain at a
 relatively small scale, then after the initial concept has been refined
 we can scale to larger datasets and models. We can use the Falcon3-1B
 model, this is a pruned version of the Falcon3-7B model used in the
-ODESteer paper with 6 billion less parameters [^4]. This should
+ODESteer paper with 6 billion less parameters [[4]](#4). This should
 make it significantly less computationally expensive to run and a good
 testing option before moving to a bigger model. The first datasets we
 can test on at this small scale is the \"Jigsaw Unintended Bias in
@@ -378,21 +378,21 @@ final work. For some of them it may be possible to derive an optimal
 value for them mathematically and in that case we should do so.
 
 ## References
-[^1] Ben Cottier et al. The rising costs of training frontier AI models. 2025. arXiv: 2405.21015  url: https://arxiv.org/abs/2405.21015.
+<a id="1">[1]</a> Ben Cottier et al. The rising costs of training frontier AI models. 2025. arXiv: 2405.21015  url: https://arxiv.org/abs/2405.21015.
 
 
-[^2] Kenneth Li et al. “Inference-Time Intervention: Eliciting Truthful Answers from a Language Model”. In: Advances in Neural Information Process-ing Systems. Ed. by A. Oh et al. Vol. 36. Curran Associates, Inc., 2023, pp 41451–41530. url: https://proceedings.neurips.cc/paper_files/paper/2023/file/81b8390039b7302c909cb769f8b6cd93-Paper-Conference.pdf
+<a id="2">[2]</a>  Kenneth Li et al. “Inference-Time Intervention: Eliciting Truthful Answers from a Language Model”. In: Advances in Neural Information Process-ing Systems. Ed. by A. Oh et al. Vol. 36. Curran Associates, Inc., 2023, pp 41451–41530. url: https://proceedings.neurips.cc/paper_files/paper/2023/file/81b8390039b7302c909cb769f8b6cd93-Paper-Conference.pdf
 
 
-[^3] Nina Panickssery et al. Steering Llama 2 via Contrastive Activation Addition. 2024. arXiv: 2312.06681 url: https://arxiv.org/abs/2312.06681
+<a id="3">[3]</a> Nina Panickssery et al. Steering Llama 2 via Contrastive Activation Addition. 2024. arXiv: 2312.06681 url: https://arxiv.org/abs/2312.06681
 
 
-[^4] Falcon-LLM Team. The Falcon 3 Family of Open Models. Dec. 2024. url:https://huggingface.co/blog/falcon3
+<a id="4">[4]</a> Falcon-LLM Team. The Falcon 3 Family of Open Models. Dec. 2024. url:https://huggingface.co/blog/falcon3
 
 
-[^5] Nisheeth K. Vishnoi. “An Interior Point Method for Linear Programming”.In: Algorithms for Convex Optimization. Cambridge University Press, 2021,pp. 185–214.
+<a id="5">[5]</a> Nisheeth K. Vishnoi. “An Interior Point Method for Linear Programming”.In: Algorithms for Convex Optimization. Cambridge University Press, 2021,pp. 185–214.
 
-[^6] Hongjue Zhao et al. ODESteer: A Unified ODE-Based Steering Frameworkfor LLM Alignment. 2026. arXiv: 2602.17560 url: https://arxiv.org/abs/2602.17560.
+<a id="6">[6]</a> Hongjue Zhao et al. ODESteer: A Unified ODE-Based Steering Frameworkfor LLM Alignment. 2026. arXiv: 2602.17560 url: https://arxiv.org/abs/2602.17560.
 
 
-[^7] Andy Zou et al. Representation Engineering: A Top-Down Approach to AI Transparency. 2023. arXiv: 2310.01405 
+<a id="7">[7]</a> Andy Zou et al. Representation Engineering: A Top-Down Approach to AI Transparency. 2023. arXiv: 2310.01405 
