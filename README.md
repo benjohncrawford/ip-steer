@@ -1,7 +1,8 @@
 # IPSteer: A Interior Point Based LLM Steering Method
 In this repo we implement a novel method of steering LLMs that frames the problem of activation steering as a constrained optimization problem and then attempt to solve that optimization problem using the interior point method. This results in a method that is guaranteed to provide activations in a known safety region that remain as close to possible as the originals, which preserves both the original fluency and high level semantic meaning of the activation. 
 
-To see the results of this method please look at this notebook:
+To see the results of this method please look at this notebook: [notebook](multi_objective_steering.ipynb)
+
 To read more about the method and background see below. 
 
 ## Credit
