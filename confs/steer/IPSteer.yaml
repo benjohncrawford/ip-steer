@@ -7,8 +7,8 @@ kwargs:
   lin_clf_type: lr
   eta_0: 0.001
   delta: 2
-  eps: 0.65
-  num_classifiers: 1
+  eps: 0.95
+  num_classifiers: 2
   max_outer_iter: 50
   max_inner_iter: 100
 T: 1.0
