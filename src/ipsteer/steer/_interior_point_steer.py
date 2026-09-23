@@ -77,7 +77,7 @@ class BaseIPSteer(Steer):
         # Only infeasible points need to be steered so only run method on subset
         infeasible_mask = ~feasible_mask
         need_steering = X[infeasible_mask]        
-        self.solver = LBFGS(m=25)
+        self.solver = LBFGS(m=10)
         steered = self.solve(need_steering)
         
         # overwrite only the infeasible rows
@@ -97,7 +97,7 @@ class BaseIPSteer(Steer):
         res -= barrier.sum(dim=-1, keepdim=True) 
         return res
 
-    def solve(self, X_0: Tensor, tol = 1e-4) -> Tensor:
+    def solve(self, X_0: Tensor, tol = 1e-3) -> Tensor:
         self.clf.to(X_0.device)
         X = self.get_warm_start(X_0).detach().clone()
         eta = self.eta_0

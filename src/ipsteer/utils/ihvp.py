@@ -56,6 +56,6 @@ def inverse_hvp(func, w, v, grad_w=None):
         hvp_out = torch.autograd.grad(grad_w, w, grad_outputs=y, retain_graph=True)[0]
         return hvp_out + 1e-4 * y
 
-    return cg(hvp_wrapper, v)
+    return cg(hvp_wrapper, v, max_iters=20, tol=1e-4)
         
         
