@@ -241,7 +241,7 @@ class HuggingFaceLM:
         if layer_idx is None:
             layer_idx = len(self.model.model.layers) // 2 - 1
         inputs = self.tokenizer(prompts, return_tensors = 'pt', padding = True).to(self.model.device)
-        outputs = self.model(**inputs, output_hidden_states = True)
+        outputs = self.model.model(**inputs, output_hidden_states = True)
         hidden_states = outputs.hidden_states[1:][layer_idx]
         # left padding settings
         return hidden_states[:, -1, :]
