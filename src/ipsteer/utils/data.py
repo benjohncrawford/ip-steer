@@ -192,7 +192,10 @@ def load_multi_objective_jigsaw_activations(model_name: str, layer_idx: int, obj
             weights_only = True,
             map_location = 'cpu',
         ))
-    return pos_activations, neg_activations
+    if len(objectives) == 1:
+        return pos_activations[-1], neg_activations[-1]
+    else:
+        return pos_activations, neg_activations
 
 def load_rtp_prompts(split: Literal["train", "validation", "test"]) -> list[str]:
     data_dir = get_project_dir() / 'data' / 'toxicity' / 'real_tox_prompts'
