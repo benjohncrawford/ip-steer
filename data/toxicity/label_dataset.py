@@ -42,7 +42,11 @@ for index, row in tqdm(df.iterrows(), total=df.shape[0]):
         result_dict[category][index] = scores[category]
     
     if index % save_after == 0: 
-        print(f"Saving after {index} iterations")
         for category, category_scores in result_dict.items():
             df[category] = category_scores
         df.to_json(jigsaw_dir / 'final_train_with_scores.jsonl', lines = True, orient = 'records')
+        
+print("Finished saving results...")
+for category, category_scores in result_dict.items():
+    df[category] = category_scores
+df.to_json(jigsaw_dir / 'final_train_with_scores.jsonl', lines = True, orient = 'records')
