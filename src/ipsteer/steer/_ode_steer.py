@@ -11,7 +11,7 @@ from torchdiffeq import odeint
 
 from ._base_steer import Steer
 from ..utils.kernels import KernelClassifier, RFFClassifier
-from ..utils.kernels import NormedPolyClassifier, MultiPolyClassifiers
+from ..utils.kernels import NormedPolyClassifier
 
 
 class BaseODESteer(Steer):
@@ -57,7 +57,7 @@ class ODESteer(BaseODESteer):
     ODESteer used in the paper with NormedPolyCntSketch classifier
     '''
     def _init_clf(self, **kwargs) -> NormedPolyClassifier:
-        return MultiPolyClassifiers(**kwargs)
+        return NormedPolyClassifier(**kwargs)
     
     
 class RFFODESteer(BaseODESteer):
