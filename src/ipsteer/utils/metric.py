@@ -166,7 +166,7 @@ class MultiObjToxicityEvaluator:
         num_batches = (len(outputs) + batch_size - 1) // batch_size
         
         # Create return dict with empty list for each objective
-        toxicity_scores = {"all" : []}
+        toxicity_scores = {"overall" : []}
         for obj in self.objectives:
             toxicity_scores[obj] = []
         for i in trange(num_batches, disable = not self.display, desc = "Evaluating toxicity"):
@@ -178,7 +178,7 @@ class MultiObjToxicityEvaluator:
 
     def eval_toxicity(self, outputs: list[str], sleep_time: int = 1) -> list[float]:
         # Create return dict with empty list for each objective
-        res = {"all": []}
+        res = {"overall": []}
         for obj in self.objectives:
             res[obj] = []
         for i in range(len(outputs)):
@@ -199,13 +199,13 @@ class MultiObjToxicityEvaluator:
                     if category in self.objectives:
                         (res[category]).append(score)
                     overall_score += score
-                (res["all"]).append(overall_score)
+                (res["overall"]).append(overall_score)
 
             except Exception as e:
                 print(f'Error evaluating toxicity: {e}')
                 for obj in self.objectives:
                     (res[obj]).append(np.nan)
-                (res["all"]).append(np.nan) 
+                (res["overall"]).append(np.nan) 
                 
             time.sleep(sleep_time)
         return res
