@@ -5,11 +5,11 @@ kwargs:
   gamma: 0.1
   coef0: 1.0
   lin_clf_type: lr
-  eta_0: 0.001
-  delta: 2
+  eta_0: 0.01
+  delta: 4
   eps: 0.95
   num_classifiers: 2
-  max_outer_iter: 50
-  max_inner_iter: 100
+  max_outer_iter: 10
+  max_inner_iter: 6
 T: 1.0
 name: ${steer.type}-nc${steer.kwargs.n_components}-degree${steer.kwargs.degree}-delta${steer.kwargs.delta}-coef0${steer.kwargs.coef0}-${steer.kwargs.lin_clf_type}-T${steer.T}-eps${steer.kwargs.eps}
